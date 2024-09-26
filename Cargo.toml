@@ -1,0 +1,10 @@
+[package]
+name = "genlogsum"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "gls"
+path = "src/main.rs"
+
+[dependencies]
