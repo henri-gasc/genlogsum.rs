@@ -199,5 +199,121 @@ mod tests {
         assert_eq!(p.best_time, 0);
         assert_eq!(p.worst_time, time);
         assert_eq!(p.total_time, time);
+
+        p.add(time);
+        assert_eq!(p.total_time, 2 * time);
+    }
+
+    #[test]
+    fn atom_filter_time_2() {
+        let mut atom = setup_atom(10);
+        atom.add(30);
+        assert_eq!(atom.total_time, 40);
+        assert_eq!(atom.filter_time(), 20 as f32);
+        assert_eq!(atom.time_avg(), 20 as f32);
+    }
+
+    #[test]
+    fn atom_filter_time_4_same() {
+        let mut atom = setup_atom(10);
+        atom.add(10);
+        atom.add(10);
+        atom.add(10);
+
+        assert_eq!(atom.total_time, 40);
+        assert_eq!(atom.filter_time(), 10 as f32);
+        assert_eq!(atom.time_avg(), 10 as f32);
+    }
+
+    #[test]
+    fn atom_filter_time_4_diff() {
+        let mut atom = setup_atom(10);
+        atom.add(20);
+        atom.add(30);
+        atom.add(40);
+
+        assert_eq!(atom.total_time, 100);
+        assert_eq!(atom.filter_time(), (50 / 2) as f32);
+        assert_eq!(atom.time_avg(), (100 / 4) as f32);
+    }
+
+    #[test]
+    fn atom_convert_text_none() {
+        let mut out = String::new();
+        let atom = setup_atom(0);
+        atom.convert_text(0., &mut out);
+        assert_eq!(out, "a few seconds".to_string());
+    }
+
+    #[test]
+    fn atom_convert_text_seconds() {
+        let mut out = String::new();
+        let atom = setup_atom(0);
+        atom.convert_text(32., &mut out);
+        assert_eq!(out, "a few seconds".to_string());
+    }
+
+    #[test]
+    fn atom_convert_text_minutes() {
+        let mut out = String::new();
+        let atom = setup_atom(0);
+        atom.convert_text(29. * 60. + 27., &mut out);
+        assert_eq!(out, "29m ".to_string());
+    }
+
+    #[test]
+    fn atom_convert_text_hours() {
+        let mut out = String::new();
+        let atom = setup_atom(0);
+        atom.convert_text((71 * 60 + 61) as f32, &mut out);
+        assert_eq!(out, "1h 12m ".to_string());
+    }
+
+    #[test]
+    fn atom_convert_text_days() {
+        let mut out = String::new();
+        let atom = setup_atom(0);
+        atom.convert_text((91 * 24 * 60 * 60 + 9 * 60 * 60 + 43 * 60) as f32, &mut out);
+        assert_eq!(out, "91d 9h 43m ".to_string());
+    }
+
+    #[test]
+    fn atom_comp_avg_no_history() {
+        let mut over = Over::NO;
+        let mut atom = setup_atom(0);
+        atom.last_time = (current_time() - 1) as u32;
+        assert_eq!(atom.comp_avg(&mut over), 1.);
+        assert!(matches!(over, Over::ALL));
+    }
+
+    #[test]
+    fn atom_comp_avg_over_all() {
+        let mut over = Over::NO;
+        // 52h 8m ago
+        let time = 52 * 60 * 60 + 8 * 60;
+        let mut atom = setup_atom(21);
+        atom.last_time = (current_time() - time) as u32;
+        assert_eq!(atom.comp_avg(&mut over), (time - 21) as f32);
+        assert!(matches!(over, Over::ALL));
+    }
+
+    #[test]
+    fn atom_comp_avg_over_avg() {
+        let mut over = Over::NO;
+        let mut atom = setup_atom(10);
+        atom.add(10);
+        atom.add(61);
+        atom.last_time = (current_time() - 15) as u32;
+        assert_eq!(atom.comp_avg(&mut over), 12. * 1.25 + 60.);
+        assert!(matches!(over, Over::AVG));
+    }
+
+    #[test]
+    fn atom_comp_avg_over_no() {
+        let mut over = Over::NO;
+        let mut atom = setup_atom(60);
+        atom.last_time = (current_time() - 10) as u32;
+        assert_eq!(atom.comp_avg(&mut over), 50. * 1.25 + 60.);
+        assert!(matches!(over, Over::NO));
     }
 }

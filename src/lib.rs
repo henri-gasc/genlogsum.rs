@@ -124,7 +124,7 @@ fn get_time_emerge(atom: &package::Atom) -> String {
         Over::ALL => output.push_str(" is over by"),
     }
 
-    return format!("{output} {time}");
+    return format!("{output} {}", &time[0..time.len() - 1]);
 }
 
 fn select_line_type(line: &str) -> LineType {
