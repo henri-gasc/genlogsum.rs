@@ -1,6 +1,6 @@
 use std::{collections::HashMap, error::Error, fs};
 
-mod package;
+pub mod package;
 mod useful;
 
 enum LineType {
@@ -25,12 +25,14 @@ fn build_package_info(
     let category = cpn[0..slash].to_string();
     let name = cpn[slash + 1..cpn.len()].to_string();
     let full_name = line[start_index..space].to_string();
+    let num = line[line.find('(')? + 1..line.find(')')?].to_string();
     return Some(package::PackageInfo {
         category,
         name,
         full_name,
         time,
         is_binary,
+        num,
     });
 }
 
@@ -116,6 +118,21 @@ fn complete_emerge(
     return Some(status);
 }
 
+fn get_time_emerge(atom: &package::Atom) -> String {
+    let mut output = String::new();
+    let mut time = String::new();
+    let over = atom.return_time(&mut time);
+
+    match over {
+        package::Over::NO => output.push_str(", ETA:"),
+        package::Over::AVG => output.push_str(", ETA (avg):"),
+        package::Over::AVGWORST => output.push_str(", ETA (worst):"),
+        package::Over::ALL => output.push_str(" is over by"),
+    }
+
+    return format!("{output} {time}");
+}
+
 fn select_line_type(line: &str) -> LineType {
     // The first 10 characters are used for the date. As such we can skip
     // them, as we have until the end of 2286 before we have to use 11
@@ -137,10 +154,12 @@ fn select_line_type(line: &str) -> LineType {
     return LineType::UNKNOW;
 }
 
-pub fn read_file() -> Result<(), Box<dyn Error>> {
-    let content = fs::read_to_string("/var/log/emerge.log")?;
-    let mut emerge_not_complete: HashMap<String, package::PackageInfo> = HashMap::new();
-    let mut completed_atoms: HashMap<String, package::Atom> = HashMap::new();
+pub fn read_file(
+    file: &str,
+    emerges_not_complete: &mut HashMap<String, package::PackageInfo>,
+    completed_atoms: &mut HashMap<String, package::Atom>,
+) -> Result<(), Box<dyn Error>> {
+    let content = fs::read_to_string(file)?;
 
     for line in content.lines() {
         // skip empty line or those starting with # (for testing purpose)
@@ -158,20 +177,19 @@ pub fn read_file() -> Result<(), Box<dyn Error>> {
                         continue;
                     }
                 }
-                emerge_not_complete.insert(p.full_name.clone(), p);
+                emerges_not_complete.insert(p.full_name.clone(), p);
             }
             LineType::MERGE => {
                 let par;
                 match line[24..].find(')') {
-                    Some(value) => par = value,
+                    Some(value) => par = 24 + value,
                     None => {
                         continue;
                     }
                 }
                 if line[par + 2..].starts_with('M') {
                     // all merge => end of long time (for most emerge)
-                    let status =
-                        complete_emerge(line, &mut emerge_not_complete, &mut completed_atoms, par);
+                    let status = complete_emerge(line, emerges_not_complete, completed_atoms, par);
 
                     if status.is_none() {
                         println!("Error when handling line {line}");
@@ -179,7 +197,7 @@ pub fn read_file() -> Result<(), Box<dyn Error>> {
                 }
             }
             LineType::TERM => {
-                emerge_not_complete.clear();
+                emerges_not_complete.clear();
             }
             LineType::UNKNOW => {
                 continue;
@@ -188,6 +206,46 @@ pub fn read_file() -> Result<(), Box<dyn Error>> {
     }
 
     return Ok(());
+}
+
+pub fn set_last_time(
+    emerges_not_complete: &mut HashMap<String, package::PackageInfo>,
+    completed_atoms: &mut HashMap<String, package::Atom>,
+) {
+    // Set the last emerge_time for all emerge not finished
+    for emerge in emerges_not_complete {
+        match completed_atoms.get_mut(emerge.0) {
+            Some(value) => value.last_time = emerge.1.time,
+            None => continue,
+        }
+    }
+}
+
+pub fn status_package(
+    emerge: &package::PackageInfo,
+    completed_atoms: &mut HashMap<String, package::Atom>,
+) -> Option<String> {
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Time was warped. Fix it !")
+        .as_secs() as u32;
+    // If the emerge started a week ago, skip it
+    if time - emerge.time > 7 * 24 * 60 * 60 {
+        return None;
+    }
+
+    let mut output = format!("{}, {}", emerge.get_num(), emerge.full_name);
+
+    match completed_atoms.get(&emerge.cpn()) {
+        Some(atom) => {
+            output.push_str(&get_time_emerge(atom));
+        }
+        None => {
+            output.push_str(", Unknow");
+        }
+    }
+
+    return Some("".to_string());
 }
 
 #[cfg(test)]
@@ -222,7 +280,7 @@ mod tests {
 
     #[test]
     fn get_info_with_cpn() {
-        let line = "146181: ) a/b-0 to /";
+        let line = "146181: (1 of 1) a/b-0 to /";
         let p = get_info(line).unwrap();
         assert_eq!(p.cpn(), "a/b".to_string());
         assert_eq!(p.full_name, "a/b-0".to_string());

@@ -1,5 +1,12 @@
 use std::u32;
 
+pub enum Over {
+    NO,       // Not over anything
+    AVG,      // Over average, under average with worst
+    AVGWORST, // Over average with worst, under worst
+    ALL,      // Over worst
+}
+
 /// A structure to store the data until we find a line that allows us to either discard it, or add it to the list of Atoms
 pub struct PackageInfo {
     pub category: String,  // the category of the package
@@ -7,12 +14,17 @@ pub struct PackageInfo {
     pub full_name: String, // the full name of the package (including version, revision, status)
     pub time: u32,         // The complete line in the file
     pub is_binary: bool,   // is it a binary emerge
+    pub num: String,       // The number (x of y)
 }
 
 impl PackageInfo {
     /// Return the category/package_name representation of the package
     pub fn cpn(&self) -> String {
         return format!("{}/{}", self.category, self.name);
+    }
+
+    pub fn get_num(&self) -> String {
+        return self.num.clone();
     }
 }
 
@@ -39,6 +51,7 @@ impl Default for Atom {
 }
 
 impl Atom {
+    /// Create a new instance of Atom with already a time
     pub fn new(cpn: String, time: u32, last_time: u32) -> Self {
         return Self {
             cpn,
@@ -50,54 +63,97 @@ impl Atom {
         };
     }
 
+    /// Add an emerge time to the package
     pub fn add(&mut self, time: u32) {
         self.num_emerge += 1;
         self.total_time += time;
         self.worst_time = std::cmp::max(self.worst_time, time);
         self.best_time = std::cmp::min(self.best_time, time);
     }
+
+    /// Compute the average time with filter
+    fn filter_time(&self) -> f32 {
+        let mut t = self.total_time;
+        let mut n = self.num_emerge;
+        if n > 2 {
+            t -= self.best_time;
+            t -= self.worst_time;
+            n -= 2;
+        }
+        return (t / n) as f32;
+    }
+
+    /// Return the average time for an emerge
+    fn time_avg(&self) -> f32 {
+        return (self.total_time / self.num_emerge) as f32;
+    }
+
+    /// Compute the average time for the emerge, along with the filters needed
+    fn comp_avg(&self, over: &mut Over) -> f32 {
+        // time between the start of the emerge and now
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("Time was warped. Fix it !")
+            .as_secs() as u32;
+
+        let mut diff: f32 = 0.;
+        if self.last_time != 0 {
+            diff = (now - self.last_time) as f32;
+        }
+
+        // Compute the time diff between the average and now
+        let mut avg = self.filter_time() - diff;
+        if avg < 0. {
+            *over = Over::AVG;
+            avg = self.time_avg() - diff;
+            if avg < 0. {
+                *over = Over::AVGWORST;
+                avg = self.worst_time as f32 - diff;
+                if avg < 0. {
+                    *over = Over::ALL;
+                    // Give the time diff with the worst emerge
+                    avg = -avg;
+                }
+            }
+        }
+
+        // Add 25% of the time, only if are using the average filtered or the complete average
+        if matches!(over, Over::NO) || matches!(over, Over::AVG) {
+            // Add 25% to the time, and prepare for the rounding
+            avg = avg * 1.25 + 60.;
+        }
+
+        return avg;
+    }
+
+    /// Format time to be on the format d h m, or with other special text
+    fn convert_text(&self, time: f32, out: &mut String) {
+        let d = time / (60. * 60. * 24.);
+        let h = (time / (60. * 60.)) % 24.;
+        let m = ((time / 60.) % (60. * 24.)) % 60.;
+        if (d == 0.) && (h == 0.) && (m == 0.) {
+            *out = "a few seconds".to_string();
+        }
+
+        if d != 0. {
+            out.push_str(&format!("{}d ", d.to_string()));
+        }
+        if h != 0. {
+            out.push_str(&format!("{}h ", h.to_string()));
+        }
+        if m != 0. {
+            out.push_str(&format!("{}m ", m.to_string()));
+        }
+    }
+
+    /// Format the time of Atom to "xd yh zm" format with special format, should avg - diff yield a negative result
+    pub fn return_time(&self, time: &mut String) -> Over {
+        let mut over = Over::NO;
+        let avg = self.comp_avg(&mut over);
+        self.convert_text(avg, time);
+        return over;
+    }
 }
-
-//  /**
-//   * @brief Compute the average time with filter
-//   *
-//   * @return float The average time
-//   */
-//  float filter_time(void);
-
-//  /**
-//   * @brief Return the average time for an emerge
-//   *
-//   * @return float the average time
-//   */
-//  float time_avg(void);
-
-//  /**
-//   * @brief Compute the average time for the emerge, along with the filters
-//   * needed
-//   *
-//   * @param over Where to store the comparaison result (know if time diff is <
-//   * or > worst_time)
-//   * @return long int The average
-//   */
-//  long int comp_avg(int &over);
-
-//  /**
-//   * @brief Format time to be on the format d h m, or with other special text
-//   *
-//   * @param time The time you want to convert
-//   * @return std::string The time converted
-//   */
-//  std::string convert_text(long int time);
-
-//  /**
-//   * @brief Format the time of Atom to "xd yh zm" format with special format
-//   * should avg - diff yield a negative result
-//   *
-//   * @param over set over to the correct value of OVER_*
-//   * @return std::string The time formatted
-//   */
-//  std::string return_time(int &over);
 
 #[cfg(test)]
 mod tests {
@@ -115,6 +171,7 @@ mod tests {
             full_name: "a/b-0.0.1".to_string(),
             time: 1,
             is_binary: false,
+            num: "".to_string(),
         };
 
         assert_eq!(p.cpn(), "a/b");
