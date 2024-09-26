@@ -12,6 +12,19 @@ pub enum LineType {
     UNKNOW,
 }
 
+#[cfg(not(test))]
+pub fn current_time() -> u64 {
+    return std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Time was warped. Fix it !")
+        .as_secs();
+}
+
+#[cfg(test)]
+pub fn current_time() -> u64 {
+    return 1234567890;
+}
+
 pub fn is_digit(c: &u8) -> bool {
     return (&b'0' <= c) && (c <= &b'9');
 }
@@ -74,5 +87,10 @@ mod tests {
         let a = "dev-python/PyQt6-6.7.1-r1";
         let s_a = get_size_cpn(a).unwrap();
         assert_eq!(s_a, 16);
+    }
+
+    #[test]
+    fn correct_time() {
+        assert_eq!(current_time(), 1234567890);
     }
 }

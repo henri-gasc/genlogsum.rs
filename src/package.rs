@@ -1,4 +1,4 @@
-use crate::useful::Over;
+use crate::useful::{current_time, Over};
 
 /// A structure to store the data until we find a line that allows us to either discard it, or add it to the list of Atoms
 pub struct PackageInfo {
@@ -8,6 +8,19 @@ pub struct PackageInfo {
     pub time: u32,         // The complete line in the file
     pub is_binary: bool,   // is it a binary emerge
     pub num: String,       // The number (x of y)
+}
+
+impl Default for PackageInfo {
+    fn default() -> Self {
+        return Self {
+            category: "".to_string(),
+            name: "".to_string(),
+            full_name: "".to_string(),
+            time: 0,
+            is_binary: false,
+            num: "".to_string(),
+        };
+    }
 }
 
 impl PackageInfo {
@@ -84,10 +97,7 @@ impl Atom {
     /// Compute the average time for the emerge, along with the filters needed
     fn comp_avg(&self, over: &mut Over) -> f32 {
         // time between the start of the emerge and now
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("Time was warped. Fix it !")
-            .as_secs() as u32;
+        let now = current_time() as u32;
 
         let mut diff: f32 = 0.;
         if self.last_time != 0 {

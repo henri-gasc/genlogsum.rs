@@ -264,10 +264,7 @@ pub fn status_package(
     emerge: &package::PackageInfo,
     completed_atoms: &mut HashMap<String, package::Atom>,
 ) -> Option<String> {
-    let time = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("Time was warped. Fix it !")
-        .as_secs() as u32;
+    let time = useful::current_time() as u32;
     // If the emerge started a week ago, skip it
     if time - emerge.time > 7 * 24 * 60 * 60 {
         return None;
