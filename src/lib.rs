@@ -221,6 +221,51 @@ pub fn set_last_time(
     }
 }
 
+fn test_file(log_emerge: &str, time: u32) -> String {
+    let mut path = log_emerge.to_string();
+    let datetime = chrono::DateTime::from_timestamp(time.into(), 0).unwrap();
+    let date = datetime.format("%Y%m%d-%H%M%S").to_string();
+
+    path.push_str(&format!(":{date}.log"));
+
+    return match std::fs::exists(&path) {
+        Ok(_) => match fs::read_to_string(path) {
+            Ok(content) => content.lines().last().unwrap_or("").to_string(),
+            Err(_) => "".to_string(),
+        },
+        Err(_) => "".to_string(),
+    };
+}
+
+pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
+    let mut log_emerge = String::from("/var/log/portage/build/");
+    log_emerge.push_str(&p.full_name);
+
+    let mut line = test_file(&log_emerge, p.time + 1);
+    if line == "" {
+        line = test_file(&log_emerge, p.time);
+        if line == "" {
+            line = test_file(&log_emerge, p.time - 1);
+        }
+    }
+
+    if (line != "") && line.starts_with('[') {
+        let mut start: i32 = -1;
+        if useful::is_digit(line.as_bytes().get(1).unwrap_or(&b'a')) {
+            start = 1;
+        } else if (line.as_bytes().get(1).unwrap_or(&b'a') == &b' ')
+            && useful::is_digit(line.as_bytes().get(2).unwrap_or(&b'a'))
+        {
+            start = 2;
+        }
+
+        if start >= 1 {
+            let end = line.find(']').unwrap_or(3);
+            output.push_str(&line[start as usize..end + 1]);
+        }
+    }
+}
+
 pub fn status_package(
     emerge: &package::PackageInfo,
     completed_atoms: &mut HashMap<String, package::Atom>,
@@ -244,6 +289,8 @@ pub fn status_package(
             output.push_str(", Unknow");
         }
     }
+
+    ninja_read(emerge, &mut output);
 
     return Some(output);
 }
