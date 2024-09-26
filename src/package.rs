@@ -128,20 +128,20 @@ impl Atom {
 
     /// Format time to be on the format d h m, or with other special text
     fn convert_text(&self, time: f32, out: &mut String) {
-        let d = time / (60. * 60. * 24.);
-        let h = (time / (60. * 60.)) % 24.;
-        let m = ((time / 60.) % (60. * 24.)) % 60.;
-        if (d == 0.) && (h == 0.) && (m == 0.) {
+        let d = (time / (60. * 60. * 24.)) as u32;
+        let h = ((time / (60. * 60.)) % 24.) as u32;
+        let m = (((time / 60.) % (60. * 24.)) % 60.) as u32;
+        if (d == 0) && (h == 0) && (m == 0) {
             *out = "a few seconds".to_string();
         }
 
-        if d != 0. {
+        if d != 0 {
             out.push_str(&format!("{}d ", d.to_string()));
         }
-        if h != 0. {
+        if h != 0 {
             out.push_str(&format!("{}h ", h.to_string()));
         }
-        if m != 0. {
+        if m != 0 {
             out.push_str(&format!("{}m ", m.to_string()));
         }
     }

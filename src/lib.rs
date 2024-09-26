@@ -214,8 +214,8 @@ pub fn set_last_time(
 ) {
     // Set the last emerge_time for all emerge not finished
     for emerge in emerges_not_complete {
-        match completed_atoms.get_mut(emerge.0) {
-            Some(value) => value.last_time = emerge.1.time,
+        match completed_atoms.get_mut(&emerge.1.cpn()) {
+            Some(atom) => atom.last_time = emerge.1.time,
             None => continue,
         }
     }
@@ -245,7 +245,7 @@ pub fn status_package(
         }
     }
 
-    return Some("".to_string());
+    return Some(output);
 }
 
 #[cfg(test)]
