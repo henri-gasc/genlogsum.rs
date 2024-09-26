@@ -28,10 +28,6 @@ impl PackageInfo {
     pub fn cpn(&self) -> String {
         return format!("{}/{}", self.category, self.name);
     }
-
-    pub fn get_num(&self) -> String {
-        return self.num.clone();
-    }
 }
 
 pub struct Atom {

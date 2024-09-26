@@ -270,7 +270,7 @@ pub fn status_package(
         return None;
     }
 
-    let mut output = format!("{}, {}", emerge.get_num(), emerge.full_name);
+    let mut output = format!("{}, {}", emerge.num, emerge.full_name);
 
     match completed_atoms.get(&emerge.cpn()) {
         Some(atom) => {
