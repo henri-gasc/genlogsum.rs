@@ -1,11 +1,4 @@
-use std::u32;
-
-pub enum Over {
-    NO,       // Not over anything
-    AVG,      // Over average, under average with worst
-    AVGWORST, // Over average with worst, under worst
-    ALL,      // Over worst
-}
+use crate::useful::Over;
 
 /// A structure to store the data until we find a line that allows us to either discard it, or add it to the list of Atoms
 pub struct PackageInfo {

@@ -1,14 +1,8 @@
 use std::{collections::HashMap, error::Error, fs};
 
 pub mod package;
+use crate::useful::{LineType, Over};
 mod useful;
-
-enum LineType {
-    START,
-    MERGE,
-    TERM,
-    UNKNOW,
-}
 
 fn build_package_info(
     line: &str,
@@ -124,10 +118,10 @@ fn get_time_emerge(atom: &package::Atom) -> String {
     let over = atom.return_time(&mut time);
 
     match over {
-        package::Over::NO => output.push_str(", ETA:"),
-        package::Over::AVG => output.push_str(", ETA (avg):"),
-        package::Over::AVGWORST => output.push_str(", ETA (worst):"),
-        package::Over::ALL => output.push_str(" is over by"),
+        Over::NO => output.push_str(", ETA:"),
+        Over::AVG => output.push_str(", ETA (avg):"),
+        Over::AVGWORST => output.push_str(", ETA (worst):"),
+        Over::ALL => output.push_str(" is over by"),
     }
 
     return format!("{output} {time}");

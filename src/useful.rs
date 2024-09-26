@@ -1,3 +1,17 @@
+pub enum Over {
+    NO,       // Not over anything
+    AVG,      // Over average, under average with worst
+    AVGWORST, // Over average with worst, under worst
+    ALL,      // Over worst
+}
+
+pub enum LineType {
+    START,
+    MERGE,
+    TERM,
+    UNKNOW,
+}
+
 pub fn is_digit(c: &u8) -> bool {
     return (&b'0' <= c) && (c <= &b'9');
 }
