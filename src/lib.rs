@@ -204,7 +204,7 @@ pub fn read_file(
 }
 
 pub fn set_last_time(
-    emerges_not_complete: &mut HashMap<String, package::PackageInfo>,
+    emerges_not_complete: &HashMap<String, package::PackageInfo>,
     completed_atoms: &mut HashMap<String, package::Atom>,
 ) {
     // Set the last emerge_time for all emerge not finished
@@ -224,11 +224,11 @@ fn test_file(log_emerge: &str, time: u32) -> String {
     path.push_str(&format!(":{date}.log"));
 
     return match std::fs::exists(&path) {
-        Ok(_) => match fs::read_to_string(path) {
+        Ok(true) => match fs::read_to_string(path) {
             Ok(content) => content.lines().last().unwrap_or("").to_string(),
             Err(_) => "".to_string(),
         },
-        Err(_) => "".to_string(),
+        _ => "".to_string(),
     };
 }
 
@@ -264,7 +264,7 @@ pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
 
 pub fn status_package(
     emerge: &package::PackageInfo,
-    completed_atoms: &mut HashMap<String, package::Atom>,
+    completed_atoms: &HashMap<String, package::Atom>,
     config: &Arguments,
 ) -> Option<String> {
     let time = useful::current_time() as u32;
@@ -289,6 +289,21 @@ pub fn status_package(
     }
 
     return Some(output);
+}
+
+pub fn correct_path(root: &str, file: &str, path: &mut String) {
+    if !file.starts_with('.') {
+        path.push_str(root);
+        if !root.ends_with('/') {
+            path.push_str("/");
+        }
+    }
+
+    let mut start_file = 0;
+    if file.starts_with('/') {
+        start_file = 1;
+    }
+    path.push_str(&file[start_file..]);
 }
 
 #[cfg(test)]
@@ -343,11 +358,18 @@ mod tests {
     #[test]
     fn get_info_3equal_binary_with_cpn() {
         let line = "1234567890:  === (1 of 1) Merging Binary (app/testing-1.2.3::/)";
-        let p = get_info_3equal(line, 0).unwrap();
+        let p = get_info_3equal(line, 24).unwrap();
 
         assert!(p.is_binary);
         assert_eq!(p.time, 1234567890);
         assert_eq!(p.cpn(), "app/testing".to_string());
+    }
+
+    #[test]
+    #[should_panic]
+    fn get_info_3equal_binary_panic() {
+        let line = "1234567890:  === (1 of 1 Merging Binary (app/testing-1.2.3::/";
+        get_info_3equal(line, 0).unwrap();
     }
 
     #[test]
@@ -358,7 +380,7 @@ mod tests {
 
     #[test]
     fn line_is_merge() {
-        let line = "1234567890:  === (1 of 1) Merging. does not matter";
+        let line = "1234567890:  === (1 of 1) Merging something, does not matter";
         assert!(std::matches!(select_line_type(line), LineType::MERGE));
     }
 
@@ -366,5 +388,136 @@ mod tests {
     fn line_is_termination() {
         let line = "1234567890:  *** terminating.";
         assert!(std::matches!(select_line_type(line), LineType::TERM));
+    }
+
+    #[test]
+    fn line_is_unknow() {
+        let line = "1234567890:  >>> AUTOCLEAN: sec-policy/selinux-java:0";
+        assert!(std::matches!(select_line_type(line), LineType::UNKNOW));
+    }
+
+    #[test]
+    fn correct_path_classical() {
+        let root = "/";
+        let file = "/var/log/emerge.log";
+        let mut path = String::new();
+        let expected = "/var/log/emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn correct_path_chroot() {
+        let root = "/mnt/gentoo";
+        let file = "var/log/emerge.log";
+        let mut path = String::new();
+        let expected = "/mnt/gentoo/var/log/emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn correct_path_stupid() {
+        let root = "/";
+        let file = "./emerge.log";
+        let mut path = String::new();
+        let expected = "./emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn test_file_dont_exist() {
+        let file = "/foo/bar";
+        let time = 0;
+        assert_eq!(test_file(file, time), "");
+    }
+
+    fn get_default_config() -> Arguments {
+        return Arguments {
+            files: vec!["./emerge.log".to_string()],
+            fakeroots: vec!["/".to_string()],
+            full: false,
+            all: false,
+            read_ninja: false,
+            show_root: false,
+            skip_file: false,
+        };
+    }
+
+    fn create_empty_hashmap() -> HashMap<String, package::Atom> {
+        let m: HashMap<String, package::Atom> = HashMap::new();
+        return m;
+    }
+
+    fn create_default_situation() -> (
+        Arguments,
+        HashMap<String, package::Atom>,
+        package::PackageInfo,
+    ) {
+        let config = get_default_config();
+        let emerge = get_info("1234567890:  >>> emerge (1 of 1) app/testing-0.0.0 to /").unwrap();
+        let mut map = create_empty_hashmap();
+        map.insert(
+            emerge.cpn(),
+            package::Atom {
+                cpn: emerge.cpn(),
+                num_emerge: 1,
+                total_time: 10,
+                best_time: 10,
+                worst_time: 10,
+                last_time: 0,
+            },
+        );
+        return (config, map, emerge);
+    }
+
+    #[test]
+    fn set_last_time_work() {
+        let default = create_default_situation();
+        let emerge = default.2;
+        let cpn = emerge.cpn();
+        let mut m = default.1;
+        let mut map: HashMap<String, package::PackageInfo> = HashMap::new();
+        map.insert(emerge.cpn(), emerge);
+        map.insert("app/retesting".to_string(), create_default_situation().2); // The value will not changed after set_last_time
+        assert_eq!(m.get(&cpn).unwrap().last_time, 0);
+        set_last_time(&map, &mut m);
+        assert_eq!(m.get(&cpn).unwrap().last_time, 1234567890);
+    }
+
+    #[test]
+    fn status_package_over_time() {
+        let default = create_default_situation();
+        let mut emerge = default.2;
+        emerge.time = 0;
+        let map = default.1;
+        let config = default.0;
+        let status = status_package(&emerge, &map, &config);
+        assert!(status.is_none());
+    }
+
+    #[test]
+    fn status_package_no_history() {
+        let default = create_default_situation();
+        let emerge = default.2;
+        let mut map = default.1;
+        map.clear();
+        let config = default.0;
+        let status = status_package(&emerge, &map, &config);
+        assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, Unknow");
+    }
+
+    #[test]
+    fn status_package_get_time() {
+        let default = create_default_situation();
+        let emerge = default.2;
+        let map = default.1;
+        let config = default.0;
+        let status = status_package(&emerge, &map, &config);
+        assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, ETA: 1m");
     }
 }

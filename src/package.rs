@@ -10,19 +10,6 @@ pub struct PackageInfo {
     pub num: String,       // The number (x of y)
 }
 
-impl Default for PackageInfo {
-    fn default() -> Self {
-        return Self {
-            category: "".to_string(),
-            name: "".to_string(),
-            full_name: "".to_string(),
-            time: 0,
-            is_binary: false,
-            num: "".to_string(),
-        };
-    }
-}
-
 impl PackageInfo {
     /// Return the category/package_name representation of the package
     pub fn cpn(&self) -> String {
@@ -37,19 +24,6 @@ pub struct Atom {
     pub best_time: u32,  // the shortest time it took to emerge this package
     pub worst_time: u32, // the longest time it took to emerge this package
     pub last_time: u32,  // the last time an emerge was started (avoid using PackageInfo)
-}
-
-impl Default for Atom {
-    fn default() -> Self {
-        return Self {
-            cpn: "".to_string(),
-            num_emerge: 0,
-            total_time: 0,
-            best_time: u32::MAX,
-            worst_time: 0,
-            last_time: 0,
-        };
-    }
 }
 
 impl Atom {
@@ -315,5 +289,15 @@ mod tests {
         atom.last_time = (current_time() - 10) as u32;
         assert_eq!(atom.comp_avg(&mut over), 50. * 1.25 + 60.);
         assert!(matches!(over, Over::NO));
+    }
+
+    #[test]
+    fn atom_return_time_work() {
+        let mut time = String::new();
+        let mut atom = setup_atom(10);
+        atom.last_time = current_time() as u32;
+
+        assert!(matches!(atom.return_time(&mut time), Over::NO));
+        assert_eq!(time, "1m ");
     }
 }

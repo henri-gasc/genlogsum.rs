@@ -22,6 +22,10 @@ pub struct Arguments {
     /// Add a file to be read.
     pub files: Vec<String>,
 
+    #[arg(long, default_value = "/", num_args(1..), verbatim_doc_comment, long_help="Should be a folder where you can chroot in as we will use the paths [root]/[file] and [root]/var/cache/edb/mtimedb.\nThis option is chained with <FILES>, meaning \"-f foo.log foo/bar.log --fakeroots /foo / bar\" will search for:\n\t/foo/foo.log, /foo/foo/bar.log, /bar/foo.log, /bar/foo/bar.log")]
+    /// Select a folder to act as root.
+    pub fakeroots: Vec<String>,
+
     #[arg(long)]
     /// Read the completion rate from the log.
     pub read_ninja: bool,
