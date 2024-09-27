@@ -234,6 +234,7 @@ fn test_file(log_emerge: &str, time: u32) -> String {
 pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
     let mut log_emerge = String::from("/var/log/portage/build/");
     log_emerge.push_str(&p.full_name);
+    output.push_str(" ");
 
     let mut line = test_file(&log_emerge, p.time + 1);
     if line == "" {
@@ -255,7 +256,7 @@ pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
 
         if start >= 1 {
             let end = line.find(']').unwrap_or(3);
-            output.push_str(&line[start as usize..end + 1]);
+            output.push_str(&line[0..end + 1]);
         }
     }
 }
