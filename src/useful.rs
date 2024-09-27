@@ -1,3 +1,5 @@
+use clap::Parser;
+
 pub enum Over {
     NO,       // Not over anything
     AVG,      // Over average, under average with worst
@@ -10,6 +12,19 @@ pub enum LineType {
     MERGE,
     TERM,
     UNKNOW,
+}
+
+#[derive(Parser, Default, Debug)]
+#[command(author = "Henri GASC", version, about)]
+/// Parse Gentoo emerge log files and output the status
+pub struct Arguments {
+    #[arg(short, long, default_value = "/var/log/emerge.log", num_args(1..))]
+    /// Add a file to be read.
+    pub files: Vec<String>,
+
+    #[arg(long)]
+    /// Read the completion rate from the log.
+    pub read_ninja: bool,
 }
 
 #[cfg(not(test))]
