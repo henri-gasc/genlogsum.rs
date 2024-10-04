@@ -1,17 +1,25 @@
-use std::{collections::HashMap, fs};
+#![warn(missing_docs)]
 
-use useful::Over;
+//! Gentoo Log Summary
+//!
+//! Collection of function used in the binary (`gls` crate).
+
+use std::{collections::HashMap, fs};
 
 pub use crate::json::read_mtimedb;
 pub use crate::package::{Atom, PackageInfo};
 pub use crate::parse_file::read_file;
-pub use crate::useful::Arguments;
+pub use crate::useful::{Arguments, Over};
 
 mod json;
 mod package;
 mod parse_file;
 mod useful;
 
+/// Return the time of an emerge as a string, with some more information
+///
+/// It uses [`Atom::convert_text`] to get the d h m representation of `t`.  
+/// It prefaces this with a short text chosen accoring to `over`.
 pub fn get_time_emerge(t: f32, over: Over) -> String {
     let mut output = String::new();
     let mut time = String::new();
@@ -27,6 +35,7 @@ pub fn get_time_emerge(t: f32, over: Over) -> String {
     return format!("{output} {}", &time[0..time.len() - 1]);
 }
 
+/// This set the [Atom::last_time] in `completed_atoms` of all packages from `emerges_not_complete` (accoring to [PackageInfo::time]).
 pub fn set_last_time(
     emerges_not_complete: &HashMap<String, PackageInfo>,
     completed_atoms: &mut HashMap<String, Atom>,
@@ -40,6 +49,10 @@ pub fn set_last_time(
     }
 }
 
+/// Test the existence of the file `log_emerge`, and if found, return the last line
+///
+/// * `log_emerge`: The basis of the path for the log
+/// * `time`: When the emerge could have been started
 fn test_file(log_emerge: &str, time: u32) -> String {
     let mut path = log_emerge.to_string();
     let datetime = chrono::DateTime::from_timestamp(time.into(), 0).unwrap();
@@ -56,11 +69,15 @@ fn test_file(log_emerge: &str, time: u32) -> String {
     };
 }
 
+/// Read the advancement from the file in log/portage/build (that is why you need split-log in your FEATURE variable)
+///
+/// This function only read the last line (it uses [`test_file`]), so if the compiler show wome warnings, the progression will not appear.
 fn ninja_read(p: &PackageInfo, output: &mut String) {
     let mut log_emerge = String::from("/var/log/portage/build/");
     log_emerge.push_str(&p.full_name);
     output.push_str(" ");
 
+    // Test 3 files, as there may be slight delay between when the line was written in emerge.log, and when the file was created
     let mut line = test_file(&log_emerge, p.time + 1);
     if line == "" {
         line = test_file(&log_emerge, p.time);
@@ -69,6 +86,7 @@ fn ninja_read(p: &PackageInfo, output: &mut String) {
         }
     }
 
+    // Ninja show progress using '[x/y] cmd'
     if (line != "") && line.starts_with('[') {
         let mut start: i32 = -1;
         if useful::is_digit(line.as_bytes().get(1).unwrap_or(&b'a')) {
@@ -86,6 +104,9 @@ fn ninja_read(p: &PackageInfo, output: &mut String) {
     }
 }
 
+/// Return the time taken by the package
+///
+/// Returns (-1, _) if the time is unknow (because never emerged before)
 fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f32, Over) {
     let mut over = Over::NO;
     let time = match completed_atoms.get(cpn) {
@@ -95,6 +116,9 @@ fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f32,
     return (time, over);
 }
 
+/// Return the time the package would need to be installed
+///
+/// If we know the package is binary, then we get a shortcut
 fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> (f32, Over) {
     // If package in waiting list is binary, add 2 minutes
     if r.binary {
@@ -107,6 +131,13 @@ fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> 
     return get_time_package(cpn, completed_atoms);
 }
 
+/// Read all the packages from mtimedb and add all their times.
+///
+/// If the time of one package in unknow, then the time for the sum is also unknow
+///
+/// * `fakeroot`: The folder from which we will try to access mtimedb
+/// * `completed_atoms`: The HashMap of completed atoms
+/// * `output`: Where the time will be placed after formatting
 fn compile_resumelist(
     fakeroot: &str,
     completed_atoms: &HashMap<String, Atom>,
@@ -129,6 +160,14 @@ fn compile_resumelist(
     output.push_str(&out[..out.len() - 1]);
 }
 
+/// Get the status of a package
+///
+/// This return the formatted output of the package
+///
+/// * `emerge`: The package we want to know more about
+/// * `completed_atoms`: The HashMap storing the completed atoms
+/// * `config`: The configuration of the running program
+/// * `fakeroot`: Will be passed to `compile_resumelist`, only used when `--full`
 fn status_package(
     emerge: &PackageInfo,
     completed_atoms: &HashMap<String, Atom>,
@@ -160,6 +199,7 @@ fn status_package(
     return Some(output);
 }
 
+/// Put both `root` and `file` in `path` while removing or adding trailing slash to avoid problem in the functions used after
 pub fn correct_path(root: &str, file: &str, path: &mut String) {
     if !file.starts_with('.') {
         path.push_str(root);
@@ -175,6 +215,18 @@ pub fn correct_path(root: &str, file: &str, path: &mut String) {
     path.push_str(&file[start_file..]);
 }
 
+/// Get the formatted output concerning a package
+///
+/// * `p`: The package we want more information on
+/// * `completed_atoms`: The HashMap storing the completed atoms
+/// * `config`: The configuration of the running program
+/// * `fakeroot`: Where to search for mtimedb, and to change to name shown
+/// * `print`: Where the formatted output will be put
+///
+/// # Examples
+/// The kind of output will be like  
+/// `1 of 2, sys-devel/gcc-13.3.1_p20240614, ETA: 3h 1m` for a classical output  
+/// `gentoo: 51 of 51, media-gfx/krita-5.2.6 is over by a few seconds [225/3346]` for an output with --show-root --fakeroot /mnt/gentoo --read-ninja
 pub fn emerge_package(
     p: &PackageInfo,
     completed_atoms: &HashMap<String, Atom>,
@@ -195,6 +247,9 @@ pub fn emerge_package(
     print.push_str(&format!("{out}\n"));
 }
 
+/// Same function as [`emerge_package`], but used with the output of [`read_mtimedb`]
+///
+/// This function do not show x of y, and can not show the Ninja progression (as there is none)
 pub fn emerge_package_mtimedb(
     emerge: &json::EmergeResume,
     completed_atoms: &mut HashMap<String, Atom>,
