@@ -19,7 +19,7 @@ fn emerge_file(
     } else {
         for package in emerges_not_complete.values() {
             let mut out = String::new();
-            if config.show_root {
+            if config.show_root && (fakeroot != "/") {
                 let name = std::path::Path::new(fakeroot).components().next_back();
                 if let Some(val) = name {
                     out.push_str(val.as_os_str().to_str().unwrap_or(""));
