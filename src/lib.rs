@@ -113,10 +113,10 @@ fn complete_emerge(
     return Some(status);
 }
 
-fn get_time_emerge(atom: &package::Atom) -> String {
+fn get_time_emerge(t: f32, over: Over) -> String {
     let mut output = String::new();
     let mut time = String::new();
-    let over = atom.return_time(&mut time);
+    package::Atom::convert_text(t, &mut time);
 
     match over {
         Over::NO => output.push_str(", ETA:"),
@@ -262,6 +262,18 @@ pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
     }
 }
 
+pub fn get_time_package(
+    emerge: &package::PackageInfo,
+    completed_atoms: &HashMap<String, package::Atom>,
+) -> (f32, Over) {
+    let mut over = Over::NO;
+    let time = match completed_atoms.get(&emerge.cpn()) {
+        Some(atom) => atom.comp_avg(&mut over),
+        None => -1.,
+    };
+    return (time, over);
+}
+
 pub fn status_package(
     emerge: &package::PackageInfo,
     completed_atoms: &HashMap<String, package::Atom>,
@@ -274,14 +286,11 @@ pub fn status_package(
     }
 
     let mut output = format!("{}, {}", emerge.num, emerge.full_name);
-
-    match completed_atoms.get(&emerge.cpn()) {
-        Some(atom) => {
-            output.push_str(&get_time_emerge(atom));
-        }
-        None => {
-            output.push_str(", Unknow");
-        }
+    let (t, over) = get_time_package(emerge, completed_atoms);
+    if t <= 0.0 {
+        output.push_str(", Unknow");
+    } else {
+        output.push_str(&get_time_emerge(t, over));
     }
 
     if config.read_ninja {

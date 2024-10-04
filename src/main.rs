@@ -16,10 +16,10 @@ fn emerge_file(
     if emerges_not_complete.is_empty() {
         println!("Not currently emerging");
     } else {
-        for emerge in emerges_not_complete.values() {
+        for package in emerges_not_complete.values() {
             println!(
                 "{}",
-                genlogsum::status_package(emerge, &mut completed_atoms, config)
+                genlogsum::status_package(package, &mut completed_atoms, config)
                     .unwrap_or("".to_string())
             );
         }

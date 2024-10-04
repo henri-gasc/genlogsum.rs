@@ -65,7 +65,7 @@ impl Atom {
     }
 
     /// Compute the average time for the emerge, along with the filters needed
-    fn comp_avg(&self, over: &mut Over) -> f32 {
+    pub fn comp_avg(&self, over: &mut Over) -> f32 {
         // time between the start of the emerge and now
         let now = current_time() as u32;
 
@@ -100,12 +100,12 @@ impl Atom {
     }
 
     /// Format time to be on the format d h m, or with other special text
-    fn convert_text(&self, time: f32, out: &mut String) {
+    pub fn convert_text(time: f32, out: &mut String) {
         let d = (time / (60. * 60. * 24.)) as u32;
         let h = ((time / (60. * 60.)) % 24.) as u32;
         let m = (((time / 60.) % (60. * 24.)) % 60.) as u32;
         if (d == 0) && (h == 0) && (m == 0) {
-            *out = "a few seconds".to_string();
+            out.push_str("a few seconds ");
         }
 
         if d != 0 {
@@ -123,7 +123,7 @@ impl Atom {
     pub fn return_time(&self, time: &mut String) -> Over {
         let mut over = Over::NO;
         let avg = self.comp_avg(&mut over);
-        self.convert_text(avg, time);
+        Self::convert_text(avg, time);
         return over;
     }
 }
@@ -214,40 +214,35 @@ mod tests {
     #[test]
     fn atom_convert_text_none() {
         let mut out = String::new();
-        let atom = setup_atom(0);
-        atom.convert_text(0., &mut out);
-        assert_eq!(out, "a few seconds".to_string());
+        Atom::convert_text(0., &mut out);
+        assert_eq!(out, "a few seconds ".to_string());
     }
 
     #[test]
     fn atom_convert_text_seconds() {
         let mut out = String::new();
-        let atom = setup_atom(0);
-        atom.convert_text(32., &mut out);
-        assert_eq!(out, "a few seconds".to_string());
+        Atom::convert_text(32., &mut out);
+        assert_eq!(out, "a few seconds ".to_string());
     }
 
     #[test]
     fn atom_convert_text_minutes() {
         let mut out = String::new();
-        let atom = setup_atom(0);
-        atom.convert_text(29. * 60. + 27., &mut out);
+        Atom::convert_text(29. * 60. + 27., &mut out);
         assert_eq!(out, "29m ".to_string());
     }
 
     #[test]
     fn atom_convert_text_hours() {
         let mut out = String::new();
-        let atom = setup_atom(0);
-        atom.convert_text((71 * 60 + 61) as f32, &mut out);
+        Atom::convert_text((71 * 60 + 61) as f32, &mut out);
         assert_eq!(out, "1h 12m ".to_string());
     }
 
     #[test]
     fn atom_convert_text_days() {
         let mut out = String::new();
-        let atom = setup_atom(0);
-        atom.convert_text((91 * 24 * 60 * 60 + 9 * 60 * 60 + 43 * 60) as f32, &mut out);
+        Atom::convert_text((91 * 24 * 60 * 60 + 9 * 60 * 60 + 43 * 60) as f32, &mut out);
         assert_eq!(out, "91d 9h 43m ".to_string());
     }
 
