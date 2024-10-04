@@ -30,9 +30,14 @@ pub struct Arguments {
     /// Print the total time until the end of the emerge command.
     pub full: bool,
 
+    #[arg(long)]
     /// Read the completion rate from the log.
     /// Your portage need split-log in FEATURES.
     pub read_ninja: bool,
+
+    #[arg(long)]
+    /// Print the name of root we used.
+    pub show_root: bool,
 
     #[arg(long)]
     /// If an error was found while reading a file, do not report the error.

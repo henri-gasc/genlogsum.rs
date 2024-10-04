@@ -18,11 +18,20 @@ fn emerge_file(
         println!("Not currently emerging");
     } else {
         for package in emerges_not_complete.values() {
-            println!(
-                "{}",
-                genlogsum::status_package(package, &mut completed_atoms, config, fakeroot)
-                    .unwrap_or("".to_string())
+            let mut out = String::new();
+            if config.show_root {
+                let name = std::path::Path::new(fakeroot).components().next_back();
+                if let Some(val) = name {
+                    out.push_str(val.as_os_str().to_str().unwrap_or(""));
+                    out.push_str(": ");
+                }
+            }
+            out.push_str(
+                &genlogsum::status_package(package, &mut completed_atoms, config, fakeroot)
+                    .unwrap_or("".to_string()),
             );
+
+            println!("{out}");
         }
     }
 
