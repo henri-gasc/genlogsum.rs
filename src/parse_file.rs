@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+
+//! This file should contains all functions used to parse the emerge log
+
 use std::{collections::HashMap, error::Error, fs};
 
 use crate::{
@@ -5,6 +9,15 @@ use crate::{
     useful::{get_size_cpn, LineType},
 };
 
+/// Build a [`PackageInfo`] struct with the information from `line`
+///
+/// Use some invariance in the lines to create a [PackageInfo] instance.
+/// * `line`: The line that contains the information
+/// * `start_index`: Where in `line` does the cpn start
+/// * `found`: Where in `line` does the cpn end
+/// * `time`: The time at which the line was written. Usually equal to the first 10 character of it
+/// * `is_binary`: If the package we are building for is binary
+/// * `end_symbol`: The symbol that mark the end of the full name of the package
 fn build_package_info(
     line: &str,
     start_index: usize,
@@ -31,6 +44,8 @@ fn build_package_info(
     });
 }
 
+/// The default function. Used for the starting emerge lines.  
+/// Use [`build_package_info`].
 pub fn get_info(line: &str) -> Option<PackageInfo> {
     let time: u32 = line[0..line.find(':')?]
         .parse()
@@ -43,6 +58,8 @@ pub fn get_info(line: &str) -> Option<PackageInfo> {
     return build_package_info(line, start_index, found, time, false, ' ');
 }
 
+/// As the name suggest, used for lines that have 3 equals (merging lines).  
+/// Use [`build_package_info`].
 fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
     let mut pos = position;
     if pos == 0 {
@@ -68,6 +85,13 @@ fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
     return build_package_info(line, start_index, found, time, is_binary, ':');
 }
 
+/// Complete an emerge.
+///
+/// * `complete_line`: The complete (merge) line
+/// * `emerges_not_complete`: The HashMap that contains all emerges not yet completed.  
+///   The package from `complete_line` is removed from it
+/// * `completed_atoms`: The HashMap where we store the atoms. We add to it the package from `complete_line`
+/// * `position`: A value to allow for slightly faster search time
 fn complete_emerge(
     complete_line: &str,
     emerges_not_complete: &mut HashMap<String, PackageInfo>,
@@ -112,6 +136,8 @@ fn complete_emerge(
 
     return Some(status);
 }
+
+/// Return what is the type of `line` in the log. See [`LineType`].
 fn select_line_type(line: &str) -> LineType {
     // The first 10 characters are used for the date. As such we can skip
     // them, as we have until the end of 2286 before we have to use 11
@@ -133,6 +159,11 @@ fn select_line_type(line: &str) -> LineType {
     return LineType::UNKNOW;
 }
 
+/// Read the whole file given and update `emerges_not_complete` and `completed_atoms` as we go.
+///
+/// * `file`: The path as string to the file we want to read
+/// * `emerges_not_complete`: The HashMap that contains all emerges not yet completed
+/// * `completed_atoms`: The HashMap where we store the atoms.
 pub fn read_file(
     file: &str,
     emerges_not_complete: &mut HashMap<String, PackageInfo>,
