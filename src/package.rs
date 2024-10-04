@@ -1,13 +1,23 @@
+#![warn(missing_docs)]
+
+//! Store PackageInfo and Atom
+
 use crate::useful::{current_time, Over};
 
 /// A structure to store the data until we find a line that allows us to either discard it, or add it to the list of Atoms
 pub struct PackageInfo {
-    pub category: String,  // the category of the package
-    pub name: String,      // the package name
-    pub full_name: String, // the full name of the package (including version, revision, status)
-    pub time: u32,         // The complete line in the file
-    pub is_binary: bool,   // is it a binary emerge
-    pub num: String,       // The number (x of y)
+    /// The category of the package
+    pub category: String,
+    /// The package name
+    pub name: String,
+    /// The full name of the package (including version, revision, status)
+    pub full_name: String,
+    /// The complete line in the file
+    pub time: u32,
+    /// Is it a binary emerge ?
+    pub is_binary: bool,
+    /// The number (x of y)
+    pub num: String,
 }
 
 impl PackageInfo {
@@ -17,17 +27,28 @@ impl PackageInfo {
     }
 }
 
+/// Store the information about a emerged atom
 pub struct Atom {
-    pub cpn: String,     // the category/package-name representation
-    pub num_emerge: u32, // the number of time the package was emerged
-    pub total_time: u32, // the total emerge time
-    pub best_time: u32,  // the shortest time it took to emerge this package
-    pub worst_time: u32, // the longest time it took to emerge this package
-    pub last_time: u32,  // the last time an emerge was started (avoid using PackageInfo)
+    /// the category/package-name representation
+    pub cpn: String,
+    /// the number of time the package was emerged
+    pub num_emerge: u32,
+    /// the total emerge time
+    pub total_time: u32,
+    /// the shortest time it took to emerge this package
+    pub best_time: u32,
+    /// the longest time it took to emerge this package
+    pub worst_time: u32,
+    /// the last time an emerge was started (avoid using PackageInfo)
+    pub last_time: u32,
 }
 
 impl Atom {
-    /// Create a new instance of Atom with already a time
+    /// Create a new instance of Atom
+    ///
+    /// * `cpn`: The category/name representation of the package
+    /// * `time`: The time it took to emerge the package
+    /// * `last_time`: The last time the package was emerged
     pub fn new(cpn: String, time: u32, last_time: u32) -> Self {
         return Self {
             cpn,
@@ -40,6 +61,8 @@ impl Atom {
     }
 
     /// Add an emerge time to the package
+    ///
+    /// * `time`: The time it took to emerge the package
     pub fn add(&mut self, time: u32) {
         self.num_emerge += 1;
         self.total_time += time;
@@ -48,6 +71,9 @@ impl Atom {
     }
 
     /// Compute the average time with filter
+    ///
+    /// This function return the average time for an emerge.  
+    /// However, if there was more than 2 emerge done, then we do not take into account the worst and the best time
     fn filter_time(&self) -> f32 {
         let mut t = self.total_time;
         let mut n = self.num_emerge;
@@ -65,6 +91,17 @@ impl Atom {
     }
 
     /// Compute the average time for the emerge, along with the filters needed
+    ///
+    /// * `over`: This will change depending on what the time is. See [`Over`].
+    ///
+    /// The function return the time until the end of the emerge.  
+    /// There are 4 cases:
+    /// - It first computes the average (without the worst and the best times if possible).
+    /// - If it is not enough, it computes the true average (with the best and worst).
+    /// - If it is still not enough, it uses the worst time.
+    /// - If even that is undervalued, it return the time since it should have ended (determined using the worst time).
+    /// In the first 2 cases, we add 25% and a minute to the time[^note].
+    /// [^note]: Yes, this means that the time after this can be worse than the worst time.
     pub fn comp_avg(&self, over: &mut Over) -> f32 {
         // time between the start of the emerge and now
         let now = current_time() as u32;
@@ -100,6 +137,9 @@ impl Atom {
     }
 
     /// Format time to be on the format d h m, or with other special text
+    ///
+    /// * `time`: The time of the emerge
+    /// * `out`: Where to store the formatted string
     pub fn convert_text(time: f32, out: &mut String) {
         let d = (time / (60. * 60. * 24.)) as u32;
         let h = ((time / (60. * 60.)) % 24.) as u32;
