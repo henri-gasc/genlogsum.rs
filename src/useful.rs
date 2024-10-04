@@ -1,22 +1,40 @@
+#![warn(missing_docs)]
+
+//! Store useful structures and functions
+
 use clap::Parser;
 
+/// Enum type for the time of an emerge and its relashionship with the previous times of the package
 pub enum Over {
-    NO,       // Not over anything
-    AVG,      // Over average, under average with worst
-    AVGWORST, // Over average with worst, under worst
-    ALL,      // Over worst
+    /// The time of the emerge is under the average
+    NO,
+    /// The time is over the filtered (without worst and best) average, but under the true (with worst and best) average
+    AVG,
+    /// the time is over the true average, but under the worst time
+    AVGWORST,
+    /// The time is over everything, This will be the new worst time when the emerge is done
+    ALL,
 }
 
+/// Enum type for what the line in emerge.log is
 pub enum LineType {
+    /// If the line if the starting point of an emerge
     START,
+    /// If the line corresponds to the merge of an emerge
     MERGE,
+    /// If the line signal termination
     TERM,
+    /// If the line is not from the previous 3 types
     UNKNOW,
 }
 
 #[derive(Parser, Default, Debug)]
-#[command(author = "Henri GASC", version, about)]
-/// Parse Gentoo emerge log files and output the status
+#[command(
+    author = "Henri GASC",
+    version,
+    about = "Parse Gentoo emerge log files and output the status"
+)]
+/// Structures to store the configuration and arguments given from the command line
 pub struct Arguments {
     #[arg(short, long, default_value = "/var/log/emerge.log", num_args(1..))]
     /// Add a file to be read.
@@ -48,23 +66,27 @@ pub struct Arguments {
     pub skip_file: bool,
 }
 
-#[cfg(not(test))]
+/// Return the current time (the number of seconds since EPOCH)
 pub fn current_time() -> u64 {
+    #[cfg(not(test))]
     return std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("Time was warped. Fix it !")
         .as_secs();
-}
 
-#[cfg(test)]
-pub fn current_time() -> u64 {
+    #[cfg(test)]
     return 1234567890;
 }
 
+/// Test wether or not `c` is a digit
 pub fn is_digit(c: &u8) -> bool {
     return (&b'0' <= c) && (c <= &b'9');
 }
 
+/// Compute the size of category/name from category/name-version
+///
+/// Grow the window until the character after a `-` is a digit.  
+/// Theorically, could give false positive, in practice, I don't care.
 pub fn get_size_cpn(cpnpv: &str) -> Option<usize> {
     let mut n = 0;
     let mut found: bool = false;
