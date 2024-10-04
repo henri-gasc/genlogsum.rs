@@ -118,14 +118,6 @@ impl Atom {
             out.push_str(&format!("{}m ", m.to_string()));
         }
     }
-
-    /// Format the time of Atom to "xd yh zm" format with special format, should avg - diff yield a negative result
-    pub fn return_time(&self, time: &mut String) -> Over {
-        let mut over = Over::NO;
-        let avg = self.comp_avg(&mut over);
-        Self::convert_text(avg, time);
-        return over;
-    }
 }
 
 #[cfg(test)]
@@ -284,15 +276,5 @@ mod tests {
         atom.last_time = (current_time() - 10) as u32;
         assert_eq!(atom.comp_avg(&mut over), 50. * 1.25 + 60.);
         assert!(matches!(over, Over::NO));
-    }
-
-    #[test]
-    fn atom_return_time_work() {
-        let mut time = String::new();
-        let mut atom = setup_atom(10);
-        atom.last_time = current_time() as u32;
-
-        assert!(matches!(atom.return_time(&mut time), Over::NO));
-        assert_eq!(time, "1m ");
     }
 }

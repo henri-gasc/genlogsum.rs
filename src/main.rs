@@ -9,8 +9,8 @@ fn emerge_file(
     fakeroot: &str,
     print: &mut String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut emerges_not_complete: HashMap<String, genlogsum::package::PackageInfo> = HashMap::new();
-    let mut completed_atoms: HashMap<String, genlogsum::package::Atom> = HashMap::new();
+    let mut emerges_not_complete: HashMap<String, genlogsum::PackageInfo> = HashMap::new();
+    let mut completed_atoms: HashMap<String, genlogsum::Atom> = HashMap::new();
 
     genlogsum::read_file(&file, &mut emerges_not_complete, &mut completed_atoms)?;
     genlogsum::set_last_time(&emerges_not_complete, &mut completed_atoms);
