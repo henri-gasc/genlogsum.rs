@@ -12,7 +12,7 @@ pub struct PackageInfo {
     pub name: String,
     /// The full name of the package (including version, revision, status)
     pub full_name: String,
-    /// The complete line in the file
+    /// The time the emerge was started
     pub time: u32,
     /// Is it a binary emerge ?
     pub is_binary: bool,

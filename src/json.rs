@@ -1,14 +1,24 @@
+#![warn(missing_docs)]
+
+//! File for json (/var/cache/db/mtimedb) reading
+
 use serde_json::Value;
 use std::fs;
 
+/// The kind of information we have in mtimedb, in the "resume" part
 pub struct EmergeResume {
+    /// If the type of package is binary
     pub binary: bool,
+    // / What the root to merge the package is
     // root: String,
+    /// The complete name of the package (with the version)
     pub name: String,
+    // / What the action for this package is
     // action: String,
 }
 
 impl EmergeResume {
+    /// Create a new EmergeResume from a Json value
     fn new(value: &Value) -> Self {
         let binary: bool = value[0] == "binary";
         // let root = String::from(
@@ -36,6 +46,10 @@ impl EmergeResume {
     }
 }
 
+/// Read mtimedb, extract the list of package that will be used next, and return it
+///
+/// * `root`: Where to start the path for mtimedb.  
+///   By default the path is /var/cache/db/mtimedb
 pub fn read_mtimedb(root: &str) -> Vec<EmergeResume> {
     let mut path = root.to_string();
     path.push_str("var/cache/edb/mtimedb");
@@ -58,11 +72,13 @@ pub fn read_mtimedb(root: &str) -> Vec<EmergeResume> {
         }
     };
 
+    // Load the resume section
     let resume = match parsed.get("resume") {
         Some(val) => val,
         None => return vec![],
     };
 
+    // Load the mergelist
     let merge = match resume.get("mergelist") {
         Some(val) => val,
         None => return vec![],
