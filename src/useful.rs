@@ -27,6 +27,9 @@ pub struct Arguments {
     pub fakeroots: Vec<String>,
 
     #[arg(long)]
+    /// Print the total time until the end of the emerge command.
+    pub full: bool,
+
     /// Read the completion rate from the log.
     /// Your portage need split-log in FEATURES.
     pub read_ninja: bool,

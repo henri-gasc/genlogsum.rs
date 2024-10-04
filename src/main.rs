@@ -6,6 +6,7 @@ use genlogsum;
 fn emerge_file(
     file: &str,
     config: &genlogsum::Arguments,
+    fakeroot: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut emerges_not_complete: HashMap<String, genlogsum::package::PackageInfo> = HashMap::new();
     let mut completed_atoms: HashMap<String, genlogsum::package::Atom> = HashMap::new();
@@ -19,7 +20,7 @@ fn emerge_file(
         for package in emerges_not_complete.values() {
             println!(
                 "{}",
-                genlogsum::status_package(package, &mut completed_atoms, config)
+                genlogsum::status_package(package, &mut completed_atoms, config, fakeroot)
                     .unwrap_or("".to_string())
             );
         }
@@ -32,7 +33,7 @@ fn emerge_fakeroot(fakeroot: &str, config: &genlogsum::Arguments) {
     for file in &config.files {
         let mut path = String::new();
         genlogsum::correct_path(fakeroot, file, &mut path);
-        if let Err(e) = emerge_file(&path, config) {
+        if let Err(e) = emerge_file(&path, config, fakeroot) {
             if !config.skip_file {
                 eprintln!("Application error: {e} for {path}");
             }

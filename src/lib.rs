@@ -1,6 +1,9 @@
 use std::{collections::HashMap, error::Error, fs};
 
+mod json;
 pub mod package;
+use json::read_mtimedb;
+
 pub use crate::useful::Arguments;
 use crate::useful::{LineType, Over};
 mod useful;
@@ -262,22 +265,51 @@ pub fn ninja_read(p: &package::PackageInfo, output: &mut String) {
     }
 }
 
-pub fn get_time_package(
-    emerge: &package::PackageInfo,
-    completed_atoms: &HashMap<String, package::Atom>,
-) -> (f32, Over) {
+fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, package::Atom>) -> (f32, Over) {
     let mut over = Over::NO;
-    let time = match completed_atoms.get(&emerge.cpn()) {
+    let time = match completed_atoms.get(cpn) {
         Some(atom) => atom.comp_avg(&mut over),
         None => -1.,
     };
     return (time, over);
 }
 
+fn compile_resumelist(
+    fakeroot: &str,
+    completed_atoms: &HashMap<String, package::Atom>,
+    output: &mut String,
+) {
+    let resume = read_mtimedb(fakeroot);
+    let mut time = 0.0;
+    for r in resume {
+        // If package in waiting list is binary, add 2 minutes
+        if r.binary {
+            time += 120.0;
+        } else {
+            // Otherwise, get the cpn from the name ...
+            let size = useful::get_size_cpn(&r.name).unwrap_or(r.name.len());
+            let cpn = &r.name.as_str()[..size];
+            // ... and compute the time
+            let (t, _) = get_time_package(cpn, completed_atoms);
+            if t < 0.0 {
+                // If the time is < 0, then we never encountered it and don't know
+                output.push_str(", Total: Unknow");
+                break;
+            }
+            time += t;
+        }
+    }
+
+    let mut out = String::from(", ");
+    package::Atom::convert_text(time, &mut out);
+    output.push_str(&out[..out.len() - 1]);
+}
+
 pub fn status_package(
     emerge: &package::PackageInfo,
     completed_atoms: &HashMap<String, package::Atom>,
     config: &Arguments,
+    fakeroot: &str,
 ) -> Option<String> {
     let time = useful::current_time() as u32;
     // If the emerge started a week ago, skip it
@@ -286,7 +318,7 @@ pub fn status_package(
     }
 
     let mut output = format!("{}, {}", emerge.num, emerge.full_name);
-    let (t, over) = get_time_package(emerge, completed_atoms);
+    let (t, over) = get_time_package(&emerge.cpn(), completed_atoms);
     if t <= 0.0 {
         output.push_str(", Unknow");
     } else {
@@ -295,6 +327,10 @@ pub fn status_package(
 
     if config.read_ninja {
         ninja_read(emerge, &mut output);
+    }
+
+    if config.full {
+        compile_resumelist(fakeroot, completed_atoms, &mut output);
     }
 
     return Some(output);
@@ -505,7 +541,7 @@ mod tests {
         emerge.time = 0;
         let map = default.1;
         let config = default.0;
-        let status = status_package(&emerge, &map, &config);
+        let status = status_package(&emerge, &map, &config, "/");
         assert!(status.is_none());
     }
 
@@ -516,7 +552,7 @@ mod tests {
         let mut map = default.1;
         map.clear();
         let config = default.0;
-        let status = status_package(&emerge, &map, &config);
+        let status = status_package(&emerge, &map, &config, "/");
         assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, Unknow");
     }
 
@@ -526,7 +562,7 @@ mod tests {
         let emerge = default.2;
         let map = default.1;
         let config = default.0;
-        let status = status_package(&emerge, &map, &config);
+        let status = status_package(&emerge, &map, &config, "/");
         assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, ETA: 1m");
     }
 }
