@@ -1,8 +1,24 @@
+#![warn(missing_docs)]
+
+//! Gentoo Log Summary
+//!
+//! A program that read emerge.log and output which packages are currently
+//! being emerged, what time until they are done, and other things.
+
 use std::collections::HashMap;
 
 use clap::Parser;
 use genlogsum;
 
+/// Read emerge log from file and put output in print.
+///
+/// * `file`: The file from which to create the record of past emerge.
+/// * `config`: The configuration of the running program
+/// * `fakeroot`: The root we will use to search and read mtimedb
+/// * `print`: A string that will be modified to contains the status
+/// * return an error if there was a problem when reading `file`
+///
+/// The reading of `[root]/var/cache/db/mtimedb` is done in this function, meaning if you used `--all` and told the program to read multiple files (using `--files`) from multiple root (with `--fakeroot`), your output will be polluted by it.
 fn emerge_file(
     file: &str,
     config: &genlogsum::Arguments,
@@ -30,6 +46,13 @@ fn emerge_file(
     return Ok(());
 }
 
+/// Go the root and read all files given by the config
+///
+/// * `fakeroot`: The folder we will use as root for the subsequent search for files
+/// * `config`: The configuration of the running program
+/// * `print`: A string that will be modified to contains the status
+///
+/// Something to note: if you are using `--all` for the program, the reading of `var/cache/db/mtimedb` is __NOT__ done in this function.
 fn emerge_fakeroot(fakeroot: &str, config: &genlogsum::Arguments, print: &mut String) {
     for file in &config.files {
         let mut path = String::new();
@@ -42,6 +65,9 @@ fn emerge_fakeroot(fakeroot: &str, config: &genlogsum::Arguments, print: &mut St
     }
 }
 
+/// The main function
+///
+/// This function only parse the arguments, call [`emerge_fakeroot`], and print the output.
 fn main() {
     let args = &genlogsum::Arguments::parse();
     let mut print = String::new();
