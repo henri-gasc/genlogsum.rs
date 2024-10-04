@@ -2,9 +2,11 @@ use std::{collections::HashMap, error::Error, fs};
 
 mod json;
 pub mod package;
-use json::read_mtimedb;
 
-pub use crate::useful::Arguments;
+use json::EmergeResume;
+
+pub use crate::json::read_mtimedb;
+pub use crate::useful::{current_time, get_size_cpn, Arguments};
 use crate::useful::{LineType, Over};
 mod useful;
 
@@ -34,7 +36,7 @@ fn build_package_info(
     });
 }
 
-fn get_info(line: &str) -> Option<package::PackageInfo> {
+pub fn get_info(line: &str) -> Option<package::PackageInfo> {
     let time: u32 = line[0..line.find(':')?]
         .parse()
         .expect("Failed to convert the time to integer");
@@ -116,7 +118,7 @@ fn complete_emerge(
     return Some(status);
 }
 
-fn get_time_emerge(t: f32, over: Over) -> String {
+pub fn get_time_emerge(t: f32, over: Over) -> String {
     let mut output = String::new();
     let mut time = String::new();
     package::Atom::convert_text(t, &mut time);
@@ -274,6 +276,18 @@ fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, package::Atom>)
     return (time, over);
 }
 
+pub fn get_time(r: &EmergeResume, completed_atoms: &HashMap<String, package::Atom>) -> (f32, Over) {
+    // If package in waiting list is binary, add 2 minutes
+    if r.binary {
+        return (120.0, Over::NO);
+    }
+    // Otherwise, get the cpn from the name ...
+    let size = useful::get_size_cpn(&r.name).unwrap_or(r.name.len());
+    let cpn = &r.name.as_str()[..size];
+    // ... and compute the time
+    return get_time_package(cpn, completed_atoms);
+}
+
 fn compile_resumelist(
     fakeroot: &str,
     completed_atoms: &HashMap<String, package::Atom>,
@@ -282,21 +296,12 @@ fn compile_resumelist(
     let resume = read_mtimedb(fakeroot);
     let mut time = 0.0;
     for r in resume {
-        // If package in waiting list is binary, add 2 minutes
-        if r.binary {
-            time += 120.0;
-        } else {
-            // Otherwise, get the cpn from the name ...
-            let size = useful::get_size_cpn(&r.name).unwrap_or(r.name.len());
-            let cpn = &r.name.as_str()[..size];
-            // ... and compute the time
-            let (t, _) = get_time_package(cpn, completed_atoms);
-            if t < 0.0 {
-                // If the time is < 0, then we never encountered it and don't know
-                output.push_str(", Total: Unknow");
-                break;
-            }
-            time += t;
+        let (t, _) = get_time(&r, completed_atoms);
+        time += t;
+        if t < 0.0 {
+            // If the time is < 0, then we never encountered it and don't know
+            output.push_str(", Total: Unknow");
+            break;
         }
     }
 
@@ -349,6 +354,48 @@ pub fn correct_path(root: &str, file: &str, path: &mut String) {
         start_file = 1;
     }
     path.push_str(&file[start_file..]);
+}
+
+pub fn emerge_package(
+    p: &package::PackageInfo,
+    completed_atoms: &HashMap<String, package::Atom>,
+    config: &Arguments,
+    fakeroot: &str,
+    print: &mut String,
+) {
+    let mut out = String::new();
+    if config.show_root && (fakeroot != "/") {
+        let name = std::path::Path::new(fakeroot).components().next_back();
+        if let Some(val) = name {
+            out.push_str(val.as_os_str().to_str().unwrap_or(""));
+            out.push_str(": ");
+        }
+    }
+    out.push_str(&status_package(p, completed_atoms, config, fakeroot).unwrap_or("".to_string()));
+
+    print.push_str(&format!("{out}\n"));
+}
+
+pub fn emerge_package_mtimedb(
+    emerge: &EmergeResume,
+    completed_atoms: &mut HashMap<String, package::Atom>,
+    print: &mut String,
+) {
+    let size = get_size_cpn(&emerge.name).unwrap_or(emerge.name.len());
+    let cpn = &emerge.name.as_str()[..size];
+    if let Some(atom) = completed_atoms.get_mut(cpn) {
+        atom.last_time = current_time() as u32;
+    }
+
+    let (t, over) = get_time(&emerge, &completed_atoms);
+    let mut output = String::from(&emerge.name);
+    if t <= 0.0 {
+        output.push_str(", Unknow");
+    } else {
+        output.push_str(&get_time_emerge(t, over));
+    }
+
+    print.push_str(&format!("{output}\n"));
 }
 
 #[cfg(test)]

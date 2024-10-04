@@ -31,6 +31,10 @@ pub struct Arguments {
     pub full: bool,
 
     #[arg(long)]
+    /// Print the time needed for all packages in mtimedb.
+    pub all: bool,
+
+    #[arg(long)]
     /// Read the completion rate from the log.
     /// Your portage need split-log in FEATURES.
     pub read_ninja: bool,

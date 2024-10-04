@@ -15,22 +15,15 @@ fn emerge_file(
     genlogsum::read_file(&file, &mut emerges_not_complete, &mut completed_atoms)?;
     genlogsum::set_last_time(&emerges_not_complete, &mut completed_atoms);
 
-    if !emerges_not_complete.is_empty() {
+    if !config.all {
         for package in emerges_not_complete.values() {
-            let mut out = String::new();
-            if config.show_root && (fakeroot != "/") {
-                let name = std::path::Path::new(fakeroot).components().next_back();
-                if let Some(val) = name {
-                    out.push_str(val.as_os_str().to_str().unwrap_or(""));
-                    out.push_str(": ");
-                }
-            }
-            out.push_str(
-                &genlogsum::status_package(package, &mut completed_atoms, config, fakeroot)
-                    .unwrap_or("".to_string()),
-            );
-
-            print.push_str(&format!("{out}\n"));
+            genlogsum::emerge_package(package, &completed_atoms, config, fakeroot, print);
+        }
+    } else {
+        // Create next_emerge from data from mtimedb
+        let list = genlogsum::read_mtimedb(fakeroot);
+        for p in list {
+            genlogsum::emerge_package_mtimedb(&p, &mut completed_atoms, print);
         }
     }
 
@@ -59,5 +52,8 @@ fn main() {
 
     if print.is_empty() {
         println!("Not currently emerging");
+    } else {
+        // There is a newline at the end of print
+        print!("{print}");
     }
 }
