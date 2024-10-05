@@ -178,6 +178,55 @@ fn select_line_type(line: &str) -> LineType {
     return LineType::UNKNOW;
 }
 
+/// Select an action based on the line type
+fn act_on_line(
+    line: &str,
+    emerges_not_complete: &mut HashMap<String, PackageInfo>,
+    completed_atoms: &mut HashMap<String, Atom>,
+) {
+    // skip empty line or those starting with # (for testing purpose)
+    if (line.len() == 0) || line.starts_with('#') {
+        return;
+    }
+
+    match select_line_type(line) {
+        LineType::START => {
+            let pack = get_info(&line);
+            let p;
+            match pack {
+                Some(info) => p = info,
+                None => {
+                    return;
+                }
+            }
+            emerges_not_complete.insert(p.full_name.clone(), p);
+        }
+        LineType::MERGE => {
+            let par;
+            match line[24..].find(')') {
+                Some(value) => par = 24 + value,
+                None => {
+                    return;
+                }
+            }
+            if line[par + 2..].starts_with('M') {
+                // all merge => end of long time (for most emerge)
+                let status = complete_emerge(line, emerges_not_complete, completed_atoms, par);
+
+                if status.is_none() {
+                    println!("Error when handling line {line}");
+                }
+            }
+        }
+        LineType::TERM => {
+            emerges_not_complete.clear();
+        }
+        LineType::UNKNOW => {
+            return;
+        }
+    }
+}
+
 /// Read the whole file given and update `emerges_not_complete` and `completed_atoms` as we go.
 ///
 /// * `file`: The path as string to the file we want to read
@@ -191,47 +240,7 @@ pub fn read_file(
     let content = fs::read_to_string(file)?;
 
     for line in content.lines() {
-        // skip empty line or those starting with # (for testing purpose)
-        if line.len() == 0 || line.starts_with('#') {
-            continue;
-        }
-
-        match select_line_type(line) {
-            LineType::START => {
-                let pack = get_info(&line);
-                let p;
-                match pack {
-                    Some(info) => p = info,
-                    None => {
-                        continue;
-                    }
-                }
-                emerges_not_complete.insert(p.full_name.clone(), p);
-            }
-            LineType::MERGE => {
-                let par;
-                match line[24..].find(')') {
-                    Some(value) => par = 24 + value,
-                    None => {
-                        continue;
-                    }
-                }
-                if line[par + 2..].starts_with('M') {
-                    // all merge => end of long time (for most emerge)
-                    let status = complete_emerge(line, emerges_not_complete, completed_atoms, par);
-
-                    if status.is_none() {
-                        println!("Error when handling line {line}");
-                    }
-                }
-            }
-            LineType::TERM => {
-                emerges_not_complete.clear();
-            }
-            LineType::UNKNOW => {
-                continue;
-            }
-        }
+        act_on_line(line, emerges_not_complete, completed_atoms);
     }
 
     return Ok(());
