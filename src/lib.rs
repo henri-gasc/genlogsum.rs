@@ -28,7 +28,7 @@ use std::{collections::HashMap, fs};
 pub use crate::json::read_mtimedb;
 pub use crate::package::{Atom, PackageInfo};
 pub use crate::parse_file::read_file;
-pub use crate::useful::{Arguments, Over};
+pub use crate::useful::{Arguments, Format, Over};
 
 mod json;
 mod package;
@@ -217,7 +217,7 @@ fn status_package(
         ninja_read(emerge, &mut output);
     }
 
-    if config.full {
+    if config.format.full {
         compile_resumelist(fakeroot, completed_atoms, &mut output);
     }
 
@@ -353,8 +353,10 @@ mod tests {
         return Arguments {
             files: vec!["./emerge.log".to_string()],
             fakeroots: vec!["/".to_string()],
-            full: false,
-            all: false,
+            format: Format {
+                full: false,
+                all: false,
+            },
             read_ninja: false,
             show_root: false,
             skip_file: false,

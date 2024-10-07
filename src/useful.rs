@@ -21,7 +21,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-use clap::Parser;
+use clap::{Args, Parser};
 
 /// Enum type for the time of an emerge and its relashionship with the previous times of the package
 pub enum Over {
@@ -67,6 +67,28 @@ pub struct Arguments {
     ///     /foo/foo.log, /foo/foo/bar.log, /bar/foo.log, /bar/foo/bar.log
     pub fakeroots: Vec<String>,
 
+    #[command(flatten)]
+    /// Format of the output, as in, show all packages and their time, show the time until the end, or neither.
+    pub format: Format,
+
+    #[arg(long)]
+    /// Read the completion rate from the log.
+    /// Your portage need split-log in FEATURES.
+    pub read_ninja: bool,
+
+    #[arg(long)]
+    /// Print the name of root we used.
+    pub show_root: bool,
+
+    #[arg(long)]
+    /// If an error was found while reading a file, do not report the error.
+    pub skip_file: bool,
+}
+
+#[derive(Args, Default, Debug)]
+#[group(required = false, multiple = false)]
+/// Format of the output (time for all, all packages, none of the two)
+pub struct Format {
     #[arg(long, verbatim_doc_comment)]
     /// Print the total time until the end of the emerge command.
     ///
@@ -81,19 +103,6 @@ pub struct Arguments {
     /// For each package in this list, we print the time it needs (or Unknow if we never saw it before).
     /// At the end, we show the total time needed for the emerge command to finish
     pub all: bool,
-
-    #[arg(long)]
-    /// Read the completion rate from the log.
-    /// Your portage need split-log in FEATURES.
-    pub read_ninja: bool,
-
-    #[arg(long)]
-    /// Print the name of root we used.
-    pub show_root: bool,
-
-    #[arg(long)]
-    /// If an error was found while reading a file, do not report the error.
-    pub skip_file: bool,
 }
 
 /// Return the current time (the number of seconds since EPOCH)

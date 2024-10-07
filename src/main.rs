@@ -54,7 +54,7 @@ fn emerge_file(
         return Ok(());
     }
 
-    if !config.all {
+    if !config.format.all {
         for package in emerges_not_complete.values() {
             genlogsum::emerge_package(package, &completed_atoms, config, fakeroot, print);
         }
