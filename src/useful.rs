@@ -59,16 +59,27 @@ pub struct Arguments {
     /// Add a file to be read.
     pub files: Vec<String>,
 
-    #[arg(long, default_value = "/", num_args(1..), verbatim_doc_comment, long_help="Should be a folder where you can chroot in as we will use the paths [root]/[file] and [root]/var/cache/edb/mtimedb.\nThis option is chained with <FILES>, meaning \"-f foo.log foo/bar.log --fakeroots /foo / bar\" will search for:\n\t/foo/foo.log, /foo/foo/bar.log, /bar/foo.log, /bar/foo/bar.log")]
+    #[arg(long, default_value = "/", num_args(1..), verbatim_doc_comment)]
     /// Select a folder to act as root.
+    ///
+    /// Should be a folder where you can chroot in as we will use the paths [root]/[file] and [root]/var/cache/edb/mtimedb.
+    /// This option is chained with <FILES>, meaning "-f foo.log foo/bar.log --fakeroots /foo / bar" will search for:
+    ///     /foo/foo.log, /foo/foo/bar.log, /bar/foo.log, /bar/foo/bar.log
     pub fakeroots: Vec<String>,
 
-    #[arg(long)]
+    #[arg(long, verbatim_doc_comment)]
     /// Print the total time until the end of the emerge command.
+    ///
+    /// When using this, the program will read the content /var/cache/edb/mtimedb, and sum the time needed to complete the current emerge.
+    /// This flag add a "Total: ..." at the end of the lines of the running emerge.
     pub full: bool,
 
-    #[arg(long)]
+    #[arg(long, verbatim_doc_comment)]
     /// Print the time needed for all packages in mtimedb.
+    ///
+    /// This flag makes the program read the content of the /var/cache/edb/mtimedb -> "resume" -> "mergelist".
+    /// For each package in this list, we print the time it needs (or Unknow if we never saw it before).
+    /// At the end, we show the total time needed for the emerge command to finish
     pub all: bool,
 
     #[arg(long)]
