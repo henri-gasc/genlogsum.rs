@@ -58,7 +58,12 @@ fn emerge_file(
         // Create next_emerge from data from mtimedb
         let list = genlogsum::read_mtimedb(fakeroot);
         for p in list {
-            genlogsum::emerge_package_mtimedb(&p, &mut completed_atoms, print);
+            genlogsum::emerge_package_mtimedb(
+                &p,
+                &mut completed_atoms,
+                &emerges_not_complete,
+                print,
+            );
         }
     }
 
