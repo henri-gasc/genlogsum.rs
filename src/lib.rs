@@ -279,13 +279,19 @@ pub fn emerge_package_mtimedb(
     emerge: &json::EmergeResume,
     completed_atoms: &mut HashMap<String, Atom>,
     emerges_not_complete: &HashMap<String, PackageInfo>,
+    config: &Arguments,
     print: &mut String,
 ) -> f32 {
+    let mut ninja = String::new();
     let size = useful::get_size_cpn(&emerge.name).unwrap_or(emerge.name.len());
     let cpn = &emerge.name.as_str()[..size];
     if let Some(atom) = completed_atoms.get_mut(cpn) {
         if let Some(package) = emerges_not_complete.get(&emerge.name) {
             atom.last_time = package.time;
+
+            if config.read_ninja {
+                ninja_read(package, &mut ninja);
+            }
         } else {
             atom.last_time = useful::current_time() as u32;
         }
@@ -295,7 +301,7 @@ pub fn emerge_package_mtimedb(
     let (t, over) = get_time(&emerge, &completed_atoms);
     format_time(t, over, &mut output);
 
-    print.push_str(&format!("{output}\n"));
+    print.push_str(&format!("{output}{ninja}\n"));
     return t;
 }
 

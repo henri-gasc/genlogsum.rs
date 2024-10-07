@@ -67,6 +67,7 @@ fn emerge_file(
                 &p,
                 &mut completed_atoms,
                 &emerges_not_complete,
+                config,
                 print,
             );
             if (t < 0.0) || (total < 0.0) {
