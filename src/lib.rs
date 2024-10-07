@@ -280,7 +280,7 @@ pub fn emerge_package_mtimedb(
     completed_atoms: &mut HashMap<String, Atom>,
     emerges_not_complete: &HashMap<String, PackageInfo>,
     print: &mut String,
-) {
+) -> f32 {
     let size = useful::get_size_cpn(&emerge.name).unwrap_or(emerge.name.len());
     let cpn = &emerge.name.as_str()[..size];
     if let Some(atom) = completed_atoms.get_mut(cpn) {
@@ -296,6 +296,7 @@ pub fn emerge_package_mtimedb(
     format_time(t, over, &mut output);
 
     print.push_str(&format!("{output}\n"));
+    return t;
 }
 
 #[cfg(test)]
