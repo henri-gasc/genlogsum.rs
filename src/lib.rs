@@ -179,6 +179,16 @@ fn compile_resumelist(
     output.push_str(&out[..out.len() - 1]);
 }
 
+/// Put in output the time until the end.
+/// Place 'Unknow' if time is less than zero
+fn format_time(time: f32, over: Over, output: &mut String) {
+    if time <= 0.0 {
+        output.push_str(", Unknow");
+    } else {
+        output.push_str(&get_time_emerge(time, over));
+    }
+}
+
 /// Get the status of a package
 ///
 /// This return the formatted output of the package
@@ -201,11 +211,7 @@ fn status_package(
 
     let mut output = format!("{}, {}", emerge.num, emerge.full_name);
     let (t, over) = get_time_package(&emerge.cpn(), completed_atoms);
-    if t <= 0.0 {
-        output.push_str(", Unknow");
-    } else {
-        output.push_str(&get_time_emerge(t, over));
-    }
+    format_time(t, over, &mut output);
 
     if config.read_ninja {
         ninja_read(emerge, &mut output);
@@ -285,13 +291,9 @@ pub fn emerge_package_mtimedb(
         }
     }
 
-    let (t, over) = get_time(&emerge, &completed_atoms);
     let mut output = String::from(&emerge.name);
-    if t <= 0.0 {
-        output.push_str(", Unknow");
-    } else {
-        output.push_str(&get_time_emerge(t, over));
-    }
+    let (t, over) = get_time(&emerge, &completed_atoms);
+    format_time(t, over, &mut output);
 
     print.push_str(&format!("{output}\n"));
 }
