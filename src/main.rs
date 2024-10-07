@@ -50,6 +50,10 @@ fn emerge_file(
     genlogsum::read_file(&file, &mut emerges_not_complete, &mut completed_atoms)?;
     genlogsum::set_last_time(&emerges_not_complete, &mut completed_atoms);
 
+    if emerges_not_complete.is_empty() {
+        return Ok(());
+    }
+
     if !config.all {
         for package in emerges_not_complete.values() {
             genlogsum::emerge_package(package, &completed_atoms, config, fakeroot, print);
