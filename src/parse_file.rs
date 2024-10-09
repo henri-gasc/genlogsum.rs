@@ -335,4 +335,24 @@ mod tests {
         let line = "1234567890:  >>> AUTOCLEAN: sec-policy/selinux-java:0";
         assert!(std::matches!(select_line_type(line), LineType::UNKNOW));
     }
+
+    #[test]
+    fn read_file_inexistent() {
+        let file = "./tests/dont/exist";
+        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
+        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
+        assert!(read_file(file, &mut emerges_not_complete, &mut completed_atoms).is_err());
+    }
+
+    #[test]
+    fn read_file_two_package_with_1binary() {
+        let file = "./tests/emerge.log/two_with_1binary";
+        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
+        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
+        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(emerges_not_complete.len(), 0);
+        assert_eq!(completed_atoms.len(), 1); // Binary package are not added to it
+    }
 }
