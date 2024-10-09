@@ -24,6 +24,8 @@
 use serde_json::Value;
 use std::fs;
 
+use crate::correct_path;
+
 /// The kind of information we have in mtimedb, in the "resume" part
 pub struct EmergeResume {
     /// If the type of package is binary
@@ -70,8 +72,8 @@ impl EmergeResume {
 /// * `root`: Where to start the path for mtimedb.  
 ///   By default the path is /var/cache/db/mtimedb
 pub fn read_mtimedb(root: &str) -> Vec<EmergeResume> {
-    let mut path = root.to_string();
-    path.push_str("var/cache/edb/mtimedb");
+    let mut path = String::new();
+    correct_path(&root, "var/cache/edb/mtimedb", &mut path);
 
     // Read file
     let content = match fs::read_to_string(path) {

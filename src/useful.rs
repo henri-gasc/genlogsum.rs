@@ -143,6 +143,22 @@ pub fn get_size_cpn(cpnpv: &str) -> Option<usize> {
     return Some(n - 1);
 }
 
+/// Put both `root` and `file` in `path` while removing or adding trailing slash to avoid problem in the functions used after
+pub fn correct_path(root: &str, file: &str, path: &mut String) {
+    if !file.starts_with('.') {
+        path.push_str(root);
+        if !root.ends_with('/') {
+            path.push_str("/");
+        }
+    }
+
+    let mut start_file = 0;
+    if file.starts_with('/') {
+        start_file = 1;
+    }
+    path.push_str(&file[start_file..]);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +205,37 @@ mod tests {
     #[test]
     fn correct_time() {
         assert_eq!(current_time(), 1234567890);
+    }
+    #[test]
+    fn correct_path_classical() {
+        let root = "/";
+        let file = "/var/log/emerge.log";
+        let mut path = String::new();
+        let expected = "/var/log/emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn correct_path_chroot() {
+        let root = "/mnt/gentoo";
+        let file = "var/log/emerge.log";
+        let mut path = String::new();
+        let expected = "/mnt/gentoo/var/log/emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn correct_path_stupid() {
+        let root = "/";
+        let file = "./emerge.log";
+        let mut path = String::new();
+        let expected = "./emerge.log";
+
+        correct_path(root, file, &mut path);
+        assert_eq!(path, expected);
     }
 }
