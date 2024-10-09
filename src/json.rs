@@ -24,7 +24,7 @@
 use serde_json::Value;
 use std::fs;
 
-use crate::correct_path;
+use crate::useful::get_path_mtimedb;
 
 /// The kind of information we have in mtimedb, in the "resume" part
 pub struct EmergeResume {
@@ -72,8 +72,7 @@ impl EmergeResume {
 /// * `root`: Where to start the path for mtimedb.  
 ///   By default the path is /var/cache/db/mtimedb
 pub fn read_mtimedb(root: &str) -> Vec<EmergeResume> {
-    let mut path = String::new();
-    correct_path(&root, "var/cache/edb/mtimedb", &mut path);
+    let path = get_path_mtimedb(root);
 
     // Read file
     let content = match fs::read_to_string(path) {
@@ -120,5 +119,21 @@ mod tests {
     #[test]
     fn read_resumelist() {
         read_mtimedb("/");
+    }
+
+    #[test]
+    fn read_resumelist_many_poss() {
+        assert!(read_mtimedb("./tests/do_not_exist").is_empty());
+        assert!(read_mtimedb("./tests/mtimedb/invalid").is_empty());
+        assert!(read_mtimedb("./tests/mtimedb/no_resume").is_empty());
+        assert!(read_mtimedb("./tests/mtimedb/no_mergelist").is_empty());
+        assert_eq!(read_mtimedb("./tests/mtimedb/1").len(), 1);
+        assert_eq!(read_mtimedb("./tests/mtimedb/3").len(), 3);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_resumelist_panic() {
+        read_mtimedb("./tests/mtimedb/panic");
     }
 }

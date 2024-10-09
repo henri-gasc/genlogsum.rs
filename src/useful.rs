@@ -106,6 +106,8 @@ pub struct Format {
 }
 
 /// Return the current time (the number of seconds since EPOCH)
+///
+/// During tests, return 1234567890
 pub fn current_time() -> u64 {
     #[cfg(not(test))]
     return std::time::SystemTime::now()
@@ -115,6 +117,21 @@ pub fn current_time() -> u64 {
 
     #[cfg(test)]
     return 1234567890;
+}
+
+/// Return the path to mtimedb
+///
+/// During tests, return the root
+pub fn get_path_mtimedb(root: &str) -> String {
+    let mut path = String::new();
+
+    #[cfg(not(test))]
+    correct_path(root, "/var/cache/edb/mtimedb", &mut path);
+
+    #[cfg(test)]
+    path.push_str(root);
+
+    return path;
 }
 
 /// Test wether or not `c` is a digit
@@ -237,5 +254,11 @@ mod tests {
 
         correct_path(root, file, &mut path);
         assert_eq!(path, expected);
+    }
+
+    #[test]
+    fn path_mtimedb() {
+        assert_eq!(get_path_mtimedb("hey"), "hey");
+        assert_eq!(get_path_mtimedb("/ha/l/lo"), "/ha/l/lo");
     }
 }
