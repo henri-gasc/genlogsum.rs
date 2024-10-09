@@ -107,18 +107,12 @@ fn ninja_read(p: &PackageInfo, output: &mut String) {
 
     // Ninja show progress using '[x/y] cmd'
     if (line != "") && line.starts_with('[') {
-        let mut start: i32 = -1;
-        if useful::is_digit(line.as_bytes().get(1).unwrap_or(&b'a')) {
-            start = 1;
-        } else if (line.as_bytes().get(1).unwrap_or(&b'a') == &b' ')
-            && useful::is_digit(line.as_bytes().get(2).unwrap_or(&b'a'))
-        {
-            start = 2;
-        }
+        let first_char = line.as_bytes().get(1).unwrap_or(&b'a');
+        let second = line.as_bytes().get(2).unwrap_or(&b'a');
 
-        if start >= 1 {
-            let end = line.find(']').unwrap_or(3);
-            output.push_str(&line[0..end + 1]);
+        if useful::is_digit(first_char) || ((first_char == &b' ') && useful::is_digit(second)) {
+            let end = line.find(']').unwrap_or(3) + 1;
+            output.push_str(&line[0..end]);
         }
     }
 }
