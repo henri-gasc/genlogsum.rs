@@ -362,6 +362,16 @@ mod tests {
     }
 
     #[test]
+    fn line_is_not_merging() {
+        let line = "1234567890:  === (9 of 15) Cleaning (a/b-1.2.3::...";
+        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+        let line = "1234567890:  === (9 of 15) Post-Build Cleaning (a/b-1.2.3::...";
+        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+        let line = "1234567890:  === (9 of 15) Compiling/Packaging (a/b-1.2.3::...";
+        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+    }
+
+    #[test]
     fn read_file_inexistent() {
         let file = "./tests/dont/exist";
         let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
