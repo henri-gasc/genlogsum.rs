@@ -114,50 +114,51 @@ fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
 /// * `emerges_not_complete`: The HashMap that contains all emerges not yet completed.  
 ///   The package from `complete_line` is removed from it
 /// * `completed_atoms`: The HashMap where we store the atoms. We add to it the package from `complete_line`
-/// * `position`: A value to allow for slightly faster search time
 fn complete_emerge(
-    complete_line: &str,
+    line: &str,
     emerges_not_complete: &mut HashMap<String, PackageInfo>,
     completed_atoms: &mut HashMap<String, Atom>,
-    position: usize,
-) -> Option<bool> {
-    let mut status = true;
-    let package = get_info_3equal(complete_line, position)?;
-    if package.is_binary {
-        if emerges_not_complete.contains_key(&package.full_name) {
-            emerges_not_complete.remove_entry(&package.full_name);
-        }
-        return Some(status);
+) {
+    let p;
+    match get_info(&line) {
+        Some(info) => p = info,
+        None => return,
     }
 
-    if emerges_not_complete.contains_key(&package.full_name) {
-        let p = emerges_not_complete.get(&package.full_name)?;
-
-        // compare the package with the version
-        if package.full_name == p.full_name {
-            // If package is binary, then we dont want to count it
-            // NOTE: May not be needed
-            if p.is_binary {
-                return Some(status);
-            }
-
+    if let Some(m) = emerges_not_complete.get(&p.full_name) {
+        // compare the packages with the version
+        if (m.full_name == p.full_name) && !m.is_binary {
             // Time will never be less than 0
-            let time: u32 = package.time - p.time;
-            // let cpn = package.cpn();
-            match completed_atoms.get_mut(&package.cpn()) {
+            let time = p.time - m.time;
+            match completed_atoms.get_mut(&m.cpn()) {
                 Some(atom) => atom.add(time),
                 None => {
-                    let a = Atom::new(package.cpn(), time, p.time);
-                    completed_atoms.insert(package.cpn(), a);
+                    let a = Atom::new(m.cpn(), time, p.time);
+                    completed_atoms.insert(m.cpn(), a);
                 }
             }
         }
-        emerges_not_complete.remove_entry(&package.full_name);
-    } else {
-        status = false;
+        emerges_not_complete.remove_entry(&p.full_name);
     }
+}
 
-    return Some(status);
+fn is_line_merging_binary(line: &str) -> bool {
+    // First, find the parenthese
+    if let Some(par) = line.find(')') {
+        // Get the letters where there should be M and B
+        let letter_m = line.as_bytes().get(par + 2);
+        let letter_b = line.as_bytes().get(par + 10);
+        // Make sure the letters exists
+        if let Some(m) = letter_m {
+            if let Some(b) = letter_b {
+                // Are they the correct letters ?
+                if (*m == b'M') && (*b == b'B') {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 /// Return what is the type of `line` in the log. See [`LineType`].
@@ -174,16 +175,8 @@ fn select_line_type(line: &str) -> LineType {
         return LineType::START;
     } else if interesting.starts_with('=') && interesting.ends_with('(') {
         // We need to filter the merge messages
-        if let Some(par) = line.find(')') {
-            let letter_m = line.as_bytes().get(par + 2);
-            let letter_b = line.as_bytes().get(par + 10);
-            if let Some(m) = letter_m {
-                if let Some(b) = letter_b {
-                    if (*m == b'M') && (*b == b'B') {
-                        return LineType::MERGE_BINARY;
-                    }
-                }
-            }
+        if is_line_merging_binary(line) {
+            return LineType::MergeBinary;
         }
     } else if interesting.starts_with(':') && interesting.ends_with('c') {
         // End of a completed merge
@@ -206,49 +199,22 @@ fn act_on_line(
         return;
     }
 
-    match select_line_type(line) {
-        LineType::START => {
-            let pack = get_info(&line);
-            match pack {
+    let t = select_line_type(line);
+    match t {
+        LineType::START | LineType::MergeBinary => {
+            // Only the function that gets the information changes depending on the type of line
+            match if matches!(t, LineType::START) {
+                get_info(&line)
+            } else {
+                get_info_3equal(&line, 0)
+            } {
                 Some(info) => {
                     emerges_not_complete.insert(info.full_name.clone(), info);
                 }
                 None => return,
             }
         }
-        LineType::MERGE_BINARY => {
-            let pack = get_info_3equal(&line, 0);
-            match pack {
-                Some(info) => {
-                    emerges_not_complete.insert(info.full_name.clone(), info);
-                }
-                None => return,
-            }
-        }
-        LineType::END => {
-            let pack = get_info(&line);
-            let p;
-            match pack {
-                Some(info) => p = info,
-                None => return,
-            }
-
-            if let Some(m) = emerges_not_complete.get(&p.full_name) {
-                // compare the packages with the version
-                if (m.full_name == p.full_name) && !m.is_binary {
-                    // Time will never be less than 0
-                    let time = p.time - m.time;
-                    match completed_atoms.get_mut(&m.cpn()) {
-                        Some(atom) => atom.add(time),
-                        None => {
-                            let a = Atom::new(m.cpn(), time, p.time);
-                            completed_atoms.insert(m.cpn(), a);
-                        }
-                    }
-                }
-                emerges_not_complete.remove_entry(&p.full_name);
-            }
-        }
+        LineType::END => complete_emerge(line, emerges_not_complete, completed_atoms),
         LineType::TERM => {
             emerges_not_complete.clear();
         }
@@ -352,10 +318,7 @@ mod tests {
     #[test]
     fn line_is_merge() {
         let line = "1234567890:  === (1 of 1) Merging Binary something, does not matter";
-        assert!(std::matches!(
-            select_line_type(line),
-            LineType::MERGE_BINARY
-        ));
+        assert!(std::matches!(select_line_type(line), LineType::MergeBinary));
     }
 
     #[test]
@@ -375,22 +338,22 @@ mod tests {
         let line = "1234567890:  === (9 of 15) Cleaning (a/b-1.2.3::...";
         assert!(!std::matches!(
             select_line_type(line),
-            LineType::MERGE_BINARY
+            LineType::MergeBinary
         ));
         let line = "1234567890:  === (9 of 15) Post-Build Cleaning (a/b-1.2.3::...";
         assert!(!std::matches!(
             select_line_type(line),
-            LineType::MERGE_BINARY
+            LineType::MergeBinary
         ));
         let line = "1234567890:  === (9 of 15) Compiling/Packaging (a/b-1.2.3::...";
         assert!(!std::matches!(
             select_line_type(line),
-            LineType::MERGE_BINARY
+            LineType::MergeBinary
         ));
         let line = "1234567890:  === (1 of 1) Merging (a/b-1.2.3::...";
         assert!(!std::matches!(
             select_line_type(line),
-            LineType::MERGE_BINARY
+            LineType::MergeBinary
         ));
     }
 
