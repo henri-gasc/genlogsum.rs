@@ -244,6 +244,17 @@ pub fn read_file(
 }
 
 #[cfg(test)]
+/// Read the file given in argument, and output the HashMap of the emerges not complete, and the one of completed atoms
+pub fn read_file_test(file: &str) -> (HashMap<String, PackageInfo>, HashMap<String, Atom>) {
+    let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
+    let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
+    let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+    assert!(result.is_ok());
+
+    return (emerges_not_complete, completed_atoms);
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -358,33 +369,26 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn read_file_inexistent() {
-        let file = "./tests/dont/exist";
-        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
-        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
-        assert!(read_file(file, &mut emerges_not_complete, &mut completed_atoms).is_err());
+        read_file_test("./tests/dont/exist");
     }
 
     #[test]
     fn read_file_two_package_with_1binary() {
-        let file = "./tests/emerge.log/two_with_1binary";
-        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
-        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
-        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+        let (emerges_not_complete, completed_atoms) =
+            read_file_test("./tests/emerge.log/two_with_1binary");
 
-        assert!(result.is_ok());
         assert_eq!(emerges_not_complete.len(), 0);
         assert_eq!(completed_atoms.len(), 1); // Binary package are not added to it
     }
 
     #[test]
     fn read_file_binary_emerge_running() {
-        let file = "./tests/emerge.log/binary_running";
-        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
-        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
-        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+        let (emerges_not_complete, completed_atoms) =
+            read_file_test("./tests/emerge.log/binary_running");
 
-        assert!(result.is_ok());
-        assert_eq!(emerges_not_complete.len(), 1);
+        assert_eq!(emerges_not_complete.len(), 1); // Binary is not done, so it has to be in emerges_not_complete
+        assert!(completed_atoms.is_empty());
     }
 }

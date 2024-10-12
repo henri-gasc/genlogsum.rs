@@ -291,6 +291,8 @@ pub fn emerge_package_mtimedb(
 
 #[cfg(test)]
 mod tests {
+    use parse_file::read_file_test;
+
     use super::*;
 
     #[test]
@@ -387,14 +389,11 @@ mod tests {
 
     #[test]
     fn emerge_package_binary_running() {
-        let file = "./tests/emerge.log/binary_running";
-        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
-        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
-        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+        let (emerges_not_complete, completed_atoms) =
+            read_file_test("./tests/emerge.log/binary_running");
         let config = get_default_config();
         let mut print = String::new();
 
-        assert!(result.is_ok());
         for package in emerges_not_complete.values() {
             emerge_package(package, &completed_atoms, &config, "/", &mut print);
         }
