@@ -351,8 +351,11 @@ mod tests {
 
     #[test]
     fn line_is_merge() {
-        let line = "1234567890:  === (1 of 1) Merging something, does not matter";
-        assert!(std::matches!(select_line_type(line), LineType::MERGE));
+        let line = "1234567890:  === (1 of 1) Merging Binary something, does not matter";
+        assert!(std::matches!(
+            select_line_type(line),
+            LineType::MERGE_BINARY
+        ));
     }
 
     #[test]
@@ -368,13 +371,27 @@ mod tests {
     }
 
     #[test]
-    fn line_is_not_merging() {
+    fn line_is_not_merging_binary() {
         let line = "1234567890:  === (9 of 15) Cleaning (a/b-1.2.3::...";
-        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+        assert!(!std::matches!(
+            select_line_type(line),
+            LineType::MERGE_BINARY
+        ));
         let line = "1234567890:  === (9 of 15) Post-Build Cleaning (a/b-1.2.3::...";
-        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+        assert!(!std::matches!(
+            select_line_type(line),
+            LineType::MERGE_BINARY
+        ));
         let line = "1234567890:  === (9 of 15) Compiling/Packaging (a/b-1.2.3::...";
-        assert!(!std::matches!(select_line_type(line), LineType::MERGE));
+        assert!(!std::matches!(
+            select_line_type(line),
+            LineType::MERGE_BINARY
+        ));
+        let line = "1234567890:  === (1 of 1) Merging (a/b-1.2.3::...";
+        assert!(!std::matches!(
+            select_line_type(line),
+            LineType::MERGE_BINARY
+        ));
     }
 
     #[test]

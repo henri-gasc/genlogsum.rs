@@ -14,10 +14,10 @@
 1234567812:  *** terminating
 1234567900: Started emerge on: Not used, not interesting
 1234567900:  *** Here is the command, and again, not interesting
-1234567900:  >>> emerge (1 of 1) category/package-1.2.3 to /
-1234567901:  === (1 of 1) Merging Binary (category/package-1.2.3::/var/db/repos/gentoo/category/package/package-1.2.3.ebuild)
-1234567901:  === (1 of 1) Post-Build Cleaning (category/package-1.2.3::/var/db/repos/gentoo/category/package/package-1.2.3.ebuild)
-1234567901:  ::: completed emerge (1 of 1) category/package-1.2.3 to /
+1234567900:  >>> emerge (1 of 1) category/package2-1.2.3 to /
+1234567901:  === (1 of 1) Merging Binary (category/package2-1.2.3::/var/db/repos/gentoo/category/package2/package2-1.2.3.ebuild)
+1234567901:  === (1 of 1) Post-Build Cleaning (category/package2-1.2.3::/var/db/repos/gentoo/category/package2/package2-1.2.3.ebuild)
+1234567901:  ::: completed emerge (1 of 1) category/package2-1.2.3 to /
 1234567902:  *** Finished. Cleaning up...
 1234567902:  *** exiting successfully.
 1234567902:  *** terminating
