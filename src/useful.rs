@@ -40,7 +40,7 @@ pub enum LineType {
     /// If the line if the starting point of an emerge
     START,
     /// If the line corresponds to the merge of an emerge
-    MERGE,
+    MERGE_BINARY,
     /// If the line is the completed emerge
     END,
     /// If the line signal termination

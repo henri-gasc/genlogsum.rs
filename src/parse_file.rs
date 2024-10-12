@@ -79,6 +79,10 @@ pub fn get_info(line: &str) -> Option<PackageInfo> {
 
 /// As the name suggest, used for lines that have 3 equals (merging lines).  
 /// Use [`build_package_info`].
+///
+/// * `line`: The line you want to extract information from.
+///  Does not perform verification
+/// * `position`: Where to start the search for the package. Put 0 if you do not know
 fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
     let mut pos = position;
     if pos == 0 {
@@ -171,9 +175,13 @@ fn select_line_type(line: &str) -> LineType {
     } else if interesting.starts_with('=') && interesting.ends_with('(') {
         // We need to filter the merge messages
         if let Some(par) = line.find(')') {
-            if let Some(letter) = line.as_bytes().get(par + 2) {
-                if *letter == b'M' {
-                    return LineType::MERGE;
+            let letter_m = line.as_bytes().get(par + 2);
+            let letter_b = line.as_bytes().get(par + 10);
+            if let Some(m) = letter_m {
+                if let Some(b) = letter_b {
+                    if (*m == b'M') && (*b == b'B') {
+                        return LineType::MERGE_BINARY;
+                    }
                 }
             }
         }
@@ -201,28 +209,20 @@ fn act_on_line(
     match select_line_type(line) {
         LineType::START => {
             let pack = get_info(&line);
-            let p;
             match pack {
-                Some(info) => p = info,
+                Some(info) => {
+                    emerges_not_complete.insert(info.full_name.clone(), info);
+                }
                 None => return,
             }
-            emerges_not_complete.insert(p.full_name.clone(), p);
         }
-        LineType::MERGE => {
-            let par;
-            match line[24..].find(')') {
-                Some(value) => par = 24 + value,
-                None => {
-                    return;
+        LineType::MERGE_BINARY => {
+            let pack = get_info_3equal(&line, 0);
+            match pack {
+                Some(info) => {
+                    emerges_not_complete.insert(info.full_name.clone(), info);
                 }
-            }
-            if line[par + 2..].starts_with('M') {
-                // all merge => end of long time (for most emerge)
-                let status = complete_emerge(line, emerges_not_complete, completed_atoms, par);
-
-                if status.is_none() {
-                    println!("Error when handling line {line}");
-                }
+                None => return,
             }
         }
         LineType::END => {
@@ -237,7 +237,7 @@ fn act_on_line(
                 // compare the packages with the version
                 if (m.full_name == p.full_name) && !m.is_binary {
                     // Time will never be less than 0
-                    let time = m.time - p.time;
+                    let time = p.time - m.time;
                     match completed_atoms.get_mut(&m.cpn()) {
                         Some(atom) => atom.add(time),
                         None => {
