@@ -171,6 +171,9 @@ fn select_line_type(line: &str) -> LineType {
     } else if interesting.starts_with('=') && interesting.ends_with('(') {
         // The real meat of the log is here
         return LineType::MERGE;
+    } else if interesting.starts_with(':') && interesting.ends_with('c') {
+        // End of a completed merge
+        return LineType::END;
     } else if interesting.starts_with('*') && interesting.ends_with('t') {
         // Line of format '%d:  *** terminating.'
         return LineType::TERM;
@@ -195,9 +198,7 @@ fn act_on_line(
             let p;
             match pack {
                 Some(info) => p = info,
-                None => {
-                    return;
-                }
+                None => return,
             }
             emerges_not_complete.insert(p.full_name.clone(), p);
         }
@@ -216,6 +217,30 @@ fn act_on_line(
                 if status.is_none() {
                     println!("Error when handling line {line}");
                 }
+            }
+        }
+        LineType::END => {
+            let pack = get_info(&line);
+            let p;
+            match pack {
+                Some(info) => p = info,
+                None => return,
+            }
+
+            if let Some(m) = emerges_not_complete.get(&p.full_name) {
+                // compare the packages with the version
+                if (m.full_name == p.full_name) && !m.is_binary {
+                    // Time will never be less than 0
+                    let time = m.time - p.time;
+                    match completed_atoms.get_mut(&m.cpn()) {
+                        Some(atom) => atom.add(time),
+                        None => {
+                            let a = Atom::new(m.cpn(), time, p.time);
+                            completed_atoms.insert(m.cpn(), a);
+                        }
+                    }
+                }
+                emerges_not_complete.remove_entry(&p.full_name);
             }
         }
         LineType::TERM => {

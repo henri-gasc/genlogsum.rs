@@ -41,6 +41,8 @@ pub enum LineType {
     START,
     /// If the line corresponds to the merge of an emerge
     MERGE,
+    /// If the line is the completed emerge
+    END,
     /// If the line signal termination
     TERM,
     /// If the line is not from the previous 3 types
