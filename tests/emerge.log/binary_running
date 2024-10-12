@@ -1,0 +1,5 @@
+1234567800: Started emerge on: Not used, not interesting
+1234567800:  *** Here is the command, and again, not interesting
+1234567800:  >>> emerge (1 of 1) category/package-1.2.3 to /
+1234567810:  === (1 of 1) Merging Binary (category/package-1.2.3::/var/db/repos/gentoo/category/package/package-1.2.3.ebuild)
+1234567810:  === (1 of 1) Post-Build Cleaning (category/package-1.2.3::/var/db/repos/gentoo/category/package/package-1.2.3.ebuild)

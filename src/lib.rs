@@ -204,7 +204,13 @@ fn status_package(
     }
 
     let mut output = format!("{}, {}", emerge.num, emerge.full_name);
-    let (t, over) = get_time_package(&emerge.cpn(), completed_atoms);
+    let (t, over) = get_time(
+        &json::EmergeResume {
+            binary: emerge.is_binary,
+            name: emerge.cpn(),
+        },
+        completed_atoms,
+    );
     format_time(t, over, &mut output);
 
     if config.read_ninja {
@@ -377,5 +383,22 @@ mod tests {
         let config = default.0;
         let status = status_package(&emerge, &map, &config, "/");
         assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, ETA: 1m");
+    }
+
+    #[test]
+    fn emerge_package_binary_running() {
+        let file = "./tests/emerge.log/binary_running";
+        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
+        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
+        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+        let config = get_default_config();
+        let mut print = String::new();
+
+        assert!(result.is_ok());
+        for package in emerges_not_complete.values() {
+            emerge_package(package, &completed_atoms, &config, "/", &mut print);
+        }
+
+        assert_eq!(print, "1 of 1, category/package-1.2.3, ETA: 2m\n");
     }
 }

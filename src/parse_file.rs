@@ -413,4 +413,15 @@ mod tests {
         assert_eq!(emerges_not_complete.len(), 0);
         assert_eq!(completed_atoms.len(), 1); // Binary package are not added to it
     }
+
+    #[test]
+    fn read_file_binary_emerge_running() {
+        let file = "./tests/emerge.log/binary_running";
+        let mut emerges_not_complete: HashMap<String, PackageInfo> = HashMap::new();
+        let mut completed_atoms: HashMap<String, Atom> = HashMap::new();
+        let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
+
+        assert!(result.is_ok());
+        assert_eq!(emerges_not_complete.len(), 1);
+    }
 }
