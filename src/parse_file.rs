@@ -169,8 +169,14 @@ fn select_line_type(line: &str) -> LineType {
         // Catch all '%d: >>> emerge %s'
         return LineType::START;
     } else if interesting.starts_with('=') && interesting.ends_with('(') {
-        // The real meat of the log is here
-        return LineType::MERGE;
+        // We need to filter the merge messages
+        if let Some(par) = line.find(')') {
+            if let Some(letter) = line.as_bytes().get(par + 2) {
+                if *letter == b'M' {
+                    return LineType::MERGE;
+                }
+            }
+        }
     } else if interesting.starts_with(':') && interesting.ends_with('c') {
         // End of a completed merge
         return LineType::END;
