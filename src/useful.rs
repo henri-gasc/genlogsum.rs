@@ -178,6 +178,15 @@ pub fn correct_path(root: &str, file: &str, path: &mut String) {
     path.push_str(&file[start_file..]);
 }
 
+/// Return the sum of `total` and `t` if both are greater than 0
+pub fn add_time(total: f64, t: f64) -> f64 {
+    if (t < 0.0) || (total < 0.0) {
+        return -1.0;
+    } else {
+        return total + t;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -262,5 +271,21 @@ mod tests {
     fn path_mtimedb() {
         assert_eq!(get_path_mtimedb("hey"), "hey");
         assert_eq!(get_path_mtimedb("/ha/l/lo"), "/ha/l/lo");
+    }
+
+    #[test]
+    fn test_add_time_more_0() {
+        let total = 0.0;
+        let t = 15.0;
+
+        assert_eq!(add_time(total, t), t);
+    }
+
+    #[test]
+    fn test_add_time_less_0() {
+        let total = -1.0;
+        let t = 15.0;
+
+        assert_eq!(add_time(total, t), -1.0);
     }
 }
