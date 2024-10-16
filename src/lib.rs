@@ -30,6 +30,7 @@ pub use crate::package::{Atom, PackageInfo};
 pub use crate::parse_file::read_file;
 pub use crate::useful::{correct_path, Arguments, Format, Over};
 
+mod benchmark;
 mod json;
 mod package;
 mod parse_file;
