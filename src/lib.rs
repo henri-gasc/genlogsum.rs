@@ -287,16 +287,18 @@ pub fn get_emerges(
                 continue;
             }
             let package = PackageInfo {
-                category: "".to_string(),
-                name: "".to_string(),
-                full_name: p.name,
+                category: p.category,
+                name: p.name,
+                full_name: p.full_name,
                 time: useful::current_time() as u32,
                 is_binary: p.binary,
-                num: "0 of 0".to_string(),
+                num: "".to_string(),
             };
 
+            set_package_time(&package, completed_atoms);
+
             let t = emerge_package(&package, completed_atoms, config, fakeroot, print);
-            useful::add_time(total, t);
+            total = useful::add_time(total, t);
         }
 
         let mut out = String::from("Total: ");
