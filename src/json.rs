@@ -24,7 +24,7 @@
 use serde_json::Value;
 use std::fs;
 
-use crate::useful::get_path_mtimedb;
+use crate::useful::{get_path_mtimedb, get_size_cpn};
 
 /// The kind of information we have in mtimedb, in the "resume" part
 pub struct EmergeResume {
@@ -32,8 +32,12 @@ pub struct EmergeResume {
     pub binary: bool,
     // / What the root to merge the package is
     // root: String,
-    /// The complete name of the package (with the version)
+    /// Category of the package
+    pub category: String,
+    /// The name of the package (without the version)
     pub name: String,
+    /// The complete name of the package (with the version)
+    pub full_name: String,
     // / What the action for this package is
     // action: String,
 }
@@ -47,11 +51,15 @@ impl EmergeResume {
         //         .as_str()
         //         .expect("The second element should be the root"),
         // );
-        let name = String::from(
+        let full_name = String::from(
             value[2]
                 .as_str()
                 .expect("The third element should be the name of the ebuild"),
         );
+        let sla = full_name.find('/').unwrap_or(full_name.len());
+        let category = full_name[0..sla].to_string();
+        let name =
+            full_name[sla + 1..get_size_cpn(&full_name).unwrap_or(full_name.len())].to_string();
         // let action = String::from(
         //     value[3]
         //         .as_str()
@@ -61,8 +69,19 @@ impl EmergeResume {
         return EmergeResume {
             binary,
             // root,
+            category,
             name,
+            full_name,
             // action,
+        };
+    }
+
+    pub fn create(binary: bool, full_name: &str) -> Self {
+        return Self {
+            binary,
+            category: "".to_string(),
+            name: "".to_string(),
+            full_name: full_name.to_string(),
         };
     }
 }

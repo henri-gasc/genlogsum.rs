@@ -143,8 +143,8 @@ fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> 
         return (120.0, Over::NO);
     }
     // Otherwise, get the cpn from the name ...
-    let size = useful::get_size_cpn(&r.name).unwrap_or(r.name.len());
-    let cpn = &r.name.as_str()[..size];
+    let size = useful::get_size_cpn(&r.full_name).unwrap_or(r.full_name.len());
+    let cpn = &r.full_name.as_str()[..size];
     // ... and compute the time
     return get_time_package(cpn, completed_atoms);
 }
@@ -210,10 +210,7 @@ fn status_package(
 
     let mut output = format!("{}, {}", emerge.num, emerge.full_name);
     let (t, over) = get_time(
-        &json::EmergeResume {
-            binary: emerge.is_binary,
-            name: emerge.cpn(),
-        },
+        &json::EmergeResume::create(emerge.is_binary, &emerge.cpn()),
         completed_atoms,
     );
     format_time(t, over, &mut output);
