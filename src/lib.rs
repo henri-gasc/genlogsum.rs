@@ -25,10 +25,12 @@
 
 use std::{collections::HashMap, fs};
 
-pub use crate::json::read_mtimedb;
 pub use crate::package::{Atom, PackageInfo};
 pub use crate::parse_file::read_file;
-pub use crate::useful::{correct_path, Arguments, Format, Over};
+pub use crate::useful::{correct_path, Arguments};
+
+use crate::json::read_mtimedb;
+use crate::useful::Over;
 
 mod benchmark;
 mod json;
@@ -40,7 +42,7 @@ mod useful;
 ///
 /// It uses [`Atom::convert_text`] to get the d h m representation of `t`.  
 /// It prefaces this with a short text chosen accoring to `over`.
-pub fn get_time_emerge(t: f64, over: Over) -> String {
+fn get_time_emerge(t: f64, over: Over) -> String {
     let mut output = String::new();
     let mut time = String::new();
     Atom::convert_text(t, &mut time);
@@ -331,7 +333,7 @@ mod tests {
         return Arguments {
             files: vec!["./emerge.log".to_string()],
             fakeroots: vec!["/".to_string()],
-            format: Format {
+            format: useful::Format {
                 full: false,
                 all: false,
             },
@@ -352,17 +354,7 @@ mod tests {
             parse_file::get_info("1234567890:  >>> emerge (1 of 1) app/testing-0.0.0 to /")
                 .unwrap();
         let mut map = create_empty_hashmap();
-        map.insert(
-            emerge.cpn(),
-            Atom {
-                cpn: emerge.cpn(),
-                num_emerge: 1,
-                total_time: 10,
-                best_time: 10,
-                worst_time: 10,
-                last_time: 0,
-            },
-        );
+        map.insert(emerge.cpn(), Atom::new(emerge.cpn(), 10, 0));
         return (config, map, emerge);
     }
 
