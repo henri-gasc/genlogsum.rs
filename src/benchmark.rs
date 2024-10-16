@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 //! Benchmark code for options
 //!
 //! Code to benchmark the multiple ways I can do something  
@@ -29,6 +27,7 @@ const LITTLE_COUNT: u32 = 1_000;
 const MIDDLE_COUNT: u32 = 100_000;
 const HUGE_COUNT: u32 = 100_000_000;
 
+#[allow(dead_code)]
 fn main() {
     let string = std::fs::read_to_string("./garbage_data").unwrap();
     let text = string.as_str();
