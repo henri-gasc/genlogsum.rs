@@ -208,7 +208,11 @@ fn status_package(
         return None;
     }
 
-    let mut output = format!("{}, {}", emerge.num, emerge.full_name);
+    let mut output = String::new();
+    if emerge.num != "" {
+        output.push_str(&format!("{}, ", emerge.num));
+    }
+    output.push_str(&emerge.full_name);
     let (t, over) = get_time(
         &json::EmergeResume::create(emerge.is_binary, &emerge.cpn()),
         completed_atoms,
