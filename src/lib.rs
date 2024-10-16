@@ -55,6 +55,13 @@ pub fn get_time_emerge(t: f64, over: Over) -> String {
     return format!("{output} {}", &time[0..time.len() - 1]);
 }
 
+fn set_package_time(package: &PackageInfo, completed_atoms: &mut HashMap<String, Atom>) {
+    match completed_atoms.get_mut(&package.cpn()) {
+        Some(atom) => atom.last_time = package.time,
+        None => (),
+    }
+}
+
 /// This set the [Atom::last_time] in `completed_atoms` of all packages from `emerges_not_complete` (accoring to [PackageInfo::time]).
 pub fn set_last_time(
     emerges_not_complete: &HashMap<String, PackageInfo>,
@@ -62,10 +69,7 @@ pub fn set_last_time(
 ) {
     // Set the last emerge_time for all emerge not finished
     for emerge in emerges_not_complete {
-        match completed_atoms.get_mut(&emerge.1.cpn()) {
-            Some(atom) => atom.last_time = emerge.1.time,
-            None => continue,
-        }
+        set_package_time(emerge.1, completed_atoms);
     }
 }
 
