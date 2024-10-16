@@ -92,7 +92,7 @@ fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
         }
     }
 
-    let time: u32 = line[0..line.find(":")?]
+    let time: u32 = line[0..line.find(':')?]
         .parse()
         .expect("Failed to convert the time to integer");
     // The smallest word is "Merging" (len 10: ') ' + 7 + ' '
@@ -103,7 +103,7 @@ fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
     let end_pos = start_index + line[start_index..].find(':')?;
     let found = start_index + get_size_cpn(&line[start_index..end_pos])?;
 
-    let is_binary = line[index_after_merge..].starts_with('B'); // ...) Merging Binary (xxx/yyy...)
+    let is_binary = line[index_after_merge..].starts_with("B"); // ...) Merging Binary (xxx/yyy...)
 
     return build_package_info(line, start_index, found, time, is_binary, ':');
 }
@@ -170,18 +170,18 @@ fn select_line_type(line: &str) -> LineType {
     // All lines of interest, are different in position 14
     let interesting = &line[13..18];
 
-    if interesting.starts_with('>') && interesting.ends_with('e') {
+    if interesting.starts_with(">") && interesting.ends_with("e") {
         // Catch all '%d: >>> emerge %s'
         return LineType::START;
-    } else if interesting.starts_with('=') && interesting.ends_with('(') {
+    } else if interesting.starts_with("=") && interesting.ends_with("(") {
         // We need to filter the merge messages
         if is_line_merging_binary(line) {
             return LineType::MergeBinary;
         }
-    } else if interesting.starts_with(':') && interesting.ends_with('c') {
+    } else if interesting.starts_with(":") && interesting.ends_with("c") {
         // End of a completed merge
         return LineType::END;
-    } else if interesting.starts_with('*') && interesting.ends_with('t') {
+    } else if interesting.starts_with("*") && interesting.ends_with("t") {
         // Line of format '%d:  *** terminating.'
         return LineType::TERM;
     }
@@ -195,7 +195,7 @@ fn act_on_line(
     completed_atoms: &mut HashMap<String, Atom>,
 ) {
     // skip empty line or those starting with # (for testing purpose)
-    if (line.len() == 0) || line.starts_with('#') {
+    if (line.len() == 0) || line.starts_with("#") {
         return;
     }
 

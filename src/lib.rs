@@ -76,7 +76,7 @@ pub fn set_last_time(
 fn test_file(log_emerge: &str, time: u32) -> String {
     let mut path = log_emerge.to_string();
     let datetime = chrono::DateTime::from_timestamp(time.into(), 0).unwrap();
-    let date = datetime.format("%Y%m%d-%H%M%S").to_string();
+    let date = datetime.format("%Y%m%d-%H%M%S");
 
     path.push_str(&format!(":{date}.log"));
 
@@ -107,7 +107,7 @@ fn ninja_read(p: &PackageInfo, output: &mut String) {
     }
 
     // Ninja show progress using '[x/y] cmd'
-    if (line != "") && line.starts_with('[') {
+    if (line != "") && line.starts_with("[") {
         let first_char = line.as_bytes().get(1).unwrap_or(&b'a');
         let second = line.as_bytes().get(2).unwrap_or(&b'a');
 

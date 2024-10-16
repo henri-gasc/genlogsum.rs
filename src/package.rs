@@ -168,13 +168,13 @@ impl Atom {
         }
 
         if d != 0 {
-            out.push_str(&format!("{}d ", d.to_string()));
+            out.push_str(&format!("{d}d "));
         }
         if h != 0 {
-            out.push_str(&format!("{}h ", h.to_string()));
+            out.push_str(&format!("{h}h "));
         }
         if m != 0 {
-            out.push_str(&format!("{}m ", m.to_string()));
+            out.push_str(&format!("{m}m "));
         }
     }
 }
