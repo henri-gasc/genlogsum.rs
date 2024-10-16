@@ -40,7 +40,7 @@ mod useful;
 ///
 /// It uses [`Atom::convert_text`] to get the d h m representation of `t`.  
 /// It prefaces this with a short text chosen accoring to `over`.
-pub fn get_time_emerge(t: f32, over: Over) -> String {
+pub fn get_time_emerge(t: f64, over: Over) -> String {
     let mut output = String::new();
     let mut time = String::new();
     Atom::convert_text(t, &mut time);
@@ -121,7 +121,7 @@ fn ninja_read(p: &PackageInfo, output: &mut String) {
 /// Return the time taken by the package
 ///
 /// Returns (-1, _) if the time is unknow (because never emerged before)
-fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f32, Over) {
+fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f64, Over) {
     let mut over = Over::NO;
     let time = match completed_atoms.get(cpn) {
         Some(atom) => atom.comp_avg(&mut over),
@@ -133,7 +133,7 @@ fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f32,
 /// Return the time the package would need to be installed
 ///
 /// If we know the package is binary, then we get a shortcut
-fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> (f32, Over) {
+fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> (f64, Over) {
     // If package in waiting list is binary, add 2 minutes
     if r.binary {
         return (120.0, Over::NO);
@@ -176,7 +176,7 @@ fn compile_resumelist(
 
 /// Put in output the time until the end.
 /// Place 'Unknow' if time is less than zero
-fn format_time(time: f32, over: Over, output: &mut String) {
+fn format_time(time: f64, over: Over, output: &mut String) {
     if time <= 0.0 {
         output.push_str(", Unknow");
     } else {
