@@ -3,6 +3,8 @@
 //! Benchmark code for options
 //!
 //! Code to benchmark the multiple ways I can do something  
+//! To use this, you should create a file with garbage data at ../tests/garbage_data (use `scripts/generate_garbage_data.py`).  
+//! To run this code, you should run `scripts/run_benchmark.sh`.
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 //
