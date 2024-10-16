@@ -197,7 +197,7 @@ fn status_package(
     completed_atoms: &HashMap<String, Atom>,
     config: &Arguments,
     fakeroot: &str,
-) -> Option<String> {
+) -> Option<(String, f64)> {
     let time = useful::current_time() as u32;
     // If the emerge started a week ago, skip it
     if time - emerge.time > 7 * 24 * 60 * 60 {
@@ -222,7 +222,7 @@ fn status_package(
         compile_resumelist(fakeroot, completed_atoms, &mut output);
     }
 
-    return Some(output);
+    return Some((output, t));
 }
 
 /// Get the formatted output concerning a package
@@ -237,13 +237,13 @@ fn status_package(
 /// The kind of output will be like  
 /// `1 of 2, sys-devel/gcc-13.3.1_p20240614, ETA: 3h 1m` for a classical output  
 /// `gentoo: 51 of 51, media-gfx/krita-5.2.6 is over by a few seconds [225/3346]` for an output with --show-root --fakeroot /mnt/gentoo --read-ninja
-pub fn emerge_package(
+fn emerge_package(
     p: &PackageInfo,
     completed_atoms: &HashMap<String, Atom>,
     config: &Arguments,
     fakeroot: &str,
     print: &mut String,
-) {
+) -> f64 {
     let mut out = String::new();
     if config.show_root && (fakeroot != "/") {
         let name = std::path::Path::new(fakeroot).components().next_back();
@@ -252,42 +252,59 @@ pub fn emerge_package(
             out.push_str(": ");
         }
     }
-    out.push_str(&status_package(p, completed_atoms, config, fakeroot).unwrap_or("".to_string()));
+    let (status, time) =
+        status_package(p, completed_atoms, config, fakeroot).unwrap_or(("".to_string(), -1.0));
+    out.push_str(&status);
 
     print.push_str(&format!("{out}\n"));
+    return time;
 }
 
-/// Same function as [`emerge_package`], but used with the output of [`read_mtimedb`]
-///
-/// This function do not show x of y, and can not show the Ninja progression (as there is none)
-pub fn emerge_package_mtimedb(
-    emerge: &json::EmergeResume,
-    completed_atoms: &mut HashMap<String, Atom>,
+/// The function you should use the get the emerge time for all packages in `emerges_not_complete` and in mtimedb if config allows you.
+pub fn get_emerges(
     emerges_not_complete: &HashMap<String, PackageInfo>,
+    completed_atoms: &mut HashMap<String, Atom>,
     config: &Arguments,
+    fakeroot: &str,
     print: &mut String,
-) -> f32 {
-    let mut ninja = String::new();
-    let size = useful::get_size_cpn(&emerge.name).unwrap_or(emerge.name.len());
-    let cpn = &emerge.name.as_str()[..size];
-    if let Some(atom) = completed_atoms.get_mut(cpn) {
-        if let Some(package) = emerges_not_complete.get(&emerge.name) {
-            atom.last_time = package.time;
-
-            if config.read_ninja {
-                ninja_read(package, &mut ninja);
-            }
-        } else {
-            atom.last_time = useful::current_time() as u32;
-        }
+) {
+    let mut total = 0.0;
+    for package in emerges_not_complete.values() {
+        let t = emerge_package(package, completed_atoms, config, fakeroot, print);
+        total = useful::add_time(total, t);
     }
 
-    let mut output = String::from(&emerge.name);
-    let (t, over) = get_time(&emerge, &completed_atoms);
-    format_time(t, over, &mut output);
+    if config.format.all {
+        // Create next_emerge from data from mtimedb
+        let list = read_mtimedb(fakeroot);
+        for p in list {
+            if let Some(_) = emerges_not_complete.get(&p.name) {
+                continue;
+            }
+            let package = PackageInfo {
+                category: "".to_string(),
+                name: "".to_string(),
+                full_name: p.name,
+                time: useful::current_time() as u32,
+                is_binary: p.binary,
+                num: "0 of 0".to_string(),
+            };
 
-    print.push_str(&format!("{output}{ninja}\n"));
-    return t;
+            let t = emerge_package(&package, completed_atoms, config, fakeroot, print);
+            useful::add_time(total, t);
+        }
+
+        let mut out = String::from("Total: ");
+        if total < 0.0 {
+            out.push_str("Unknow");
+        } else {
+            Atom::convert_text(total, &mut out);
+            out = out[..out.len() - 1].to_string();
+        }
+        out.push('\n');
+
+        print.push_str(&out);
+    }
 }
 
 #[cfg(test)]
@@ -375,7 +392,7 @@ mod tests {
         map.clear();
         let config = default.0;
         let status = status_package(&emerge, &map, &config, "/");
-        assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, Unknow");
+        assert_eq!(status.unwrap().0, "1 of 1, app/testing-0.0.0, Unknow");
     }
 
     #[test]
@@ -385,7 +402,7 @@ mod tests {
         let map = default.1;
         let config = default.0;
         let status = status_package(&emerge, &map, &config, "/");
-        assert_eq!(status.unwrap(), "1 of 1, app/testing-0.0.0, ETA: 1m");
+        assert_eq!(status.unwrap().0, "1 of 1, app/testing-0.0.0, ETA: 1m");
     }
 
     #[test]

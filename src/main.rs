@@ -54,40 +54,13 @@ fn emerge_file(
         return Ok(());
     }
 
-    if !config.format.all {
-        for package in emerges_not_complete.values() {
-            genlogsum::emerge_package(package, &completed_atoms, config, fakeroot, print);
-        }
-    } else {
-        // Create next_emerge from data from mtimedb
-        let list = genlogsum::read_mtimedb(fakeroot);
-        let mut total = 0.0;
-        for p in list {
-            let t = genlogsum::emerge_package_mtimedb(
-                &p,
-                &mut completed_atoms,
-                &emerges_not_complete,
-                config,
-                print,
-            );
-            if (t < 0.0) || (total < 0.0) {
-                total = -1.0;
-            } else {
-                total += t;
-            }
-        }
-        let mut out = String::from("Total: ");
-        if total < 0.0 {
-            out.push_str("Unknow");
-        } else {
-            genlogsum::Atom::convert_text(total, &mut out);
-            out = out[..out.len() - 1].to_string();
-        }
-        out.push('\n');
-
-        print.push_str(&out);
-    }
-
+    genlogsum::get_emerges(
+        &emerges_not_complete,
+        &mut completed_atoms,
+        config,
+        fakeroot,
+        print,
+    );
     return Ok(());
 }
 
