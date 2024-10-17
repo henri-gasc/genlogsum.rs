@@ -27,7 +27,6 @@
 use std::collections::HashMap;
 
 use clap::Parser;
-use genlogsum;
 
 /// Read emerge log from file and put output in print.
 ///
@@ -47,7 +46,7 @@ fn emerge_file(
     let mut emerges_not_complete: HashMap<String, genlogsum::PackageInfo> = HashMap::new();
     let mut completed_atoms: HashMap<String, genlogsum::Atom> = HashMap::new();
 
-    genlogsum::read_file(&file, &mut emerges_not_complete, &mut completed_atoms)?;
+    genlogsum::read_file(file, &mut emerges_not_complete, &mut completed_atoms)?;
     genlogsum::set_last_time(&emerges_not_complete, &mut completed_atoms);
 
     if emerges_not_complete.is_empty() {
@@ -61,7 +60,7 @@ fn emerge_file(
         fakeroot,
         print,
     );
-    return Ok(());
+    Ok(())
 }
 
 /// Go the root and read all files given by the config

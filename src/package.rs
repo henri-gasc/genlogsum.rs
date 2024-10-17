@@ -42,7 +42,7 @@ pub struct PackageInfo {
 impl PackageInfo {
     /// Return the category/package_name representation of the package
     pub fn cpn(&self) -> String {
-        return format!("{}/{}", self.category, self.name);
+        format!("{}/{}", self.category, self.name)
     }
 }
 
@@ -69,14 +69,14 @@ impl Atom {
     /// * `time`: The time it took to emerge the package
     /// * `last_time`: The last time the package was emerged
     pub fn new(cpn: String, time: u32, last_time: u32) -> Self {
-        return Self {
+        Self {
             cpn,
             num_emerge: 1,
             total_time: time,
             best_time: time,
             worst_time: time,
             last_time,
-        };
+        }
     }
 
     /// Add an emerge time to the package
@@ -101,12 +101,12 @@ impl Atom {
             t -= self.worst_time;
             n -= 2;
         }
-        return (t / n) as f64;
+        (t / n) as f64
     }
 
     /// Return the average time for an emerge
     fn time_avg(&self) -> f64 {
-        return (self.total_time / self.num_emerge) as f64;
+        (self.total_time / self.num_emerge) as f64
     }
 
     /// Compute the average time for the emerge, along with the filters needed
@@ -119,6 +119,7 @@ impl Atom {
     /// - If it is not enough, it computes the true average (with the best and worst).
     /// - If it is still not enough, it uses the worst time.
     /// - If even that is undervalued, it return the time since it should have ended (determined using the worst time).
+    ///
     /// In the first 2 cases, we add 25% and a minute to the time[^note].
     /// [^note]: Yes, this means that the time after this can be worse than the worst time.
     pub fn comp_avg(&self, over: &mut Over) -> f64 {
@@ -133,13 +134,13 @@ impl Atom {
         // Compute the time diff between the average and now
         let mut avg = self.filter_time() - diff;
         if avg < 0. {
-            *over = Over::AVG;
+            *over = Over::Avg;
             avg = self.time_avg() - diff;
             if avg < 0. {
-                *over = Over::AVGWORST;
+                *over = Over::AvgWorst;
                 avg = self.worst_time as f64 - diff;
                 if avg < 0. {
-                    *over = Over::ALL;
+                    *over = Over::All;
                     // Give the time diff with the worst emerge
                     avg = -avg;
                 }
@@ -147,12 +148,12 @@ impl Atom {
         }
 
         // Add 25% of the time, only if are using the average filtered or the complete average
-        if matches!(over, Over::NO) || matches!(over, Over::AVG) {
+        if matches!(over, Over::NO) || matches!(over, Over::Avg) {
             // Add 25% to the time, and prepare for the rounding
             avg = avg * 1.25 + 60.;
         }
 
-        return avg;
+        avg
     }
 
     /// Format time to be on the format d h m, or with other special text
@@ -184,7 +185,7 @@ mod tests {
     use super::*;
 
     fn setup_atom(time: u32) -> Atom {
-        return Atom::new("cpn".to_string(), time, 0);
+        Atom::new("cpn".to_string(), time, 0)
     }
 
     #[test]
@@ -234,8 +235,8 @@ mod tests {
         let mut atom = setup_atom(10);
         atom.add(30);
         assert_eq!(atom.total_time, 40);
-        assert_eq!(atom.filter_time(), 20 as f64);
-        assert_eq!(atom.time_avg(), 20 as f64);
+        assert_eq!(atom.filter_time(), 20.0);
+        assert_eq!(atom.time_avg(), 20.0);
     }
 
     #[test]
@@ -246,8 +247,8 @@ mod tests {
         atom.add(10);
 
         assert_eq!(atom.total_time, 40);
-        assert_eq!(atom.filter_time(), 10 as f64);
-        assert_eq!(atom.time_avg(), 10 as f64);
+        assert_eq!(atom.filter_time(), 10.0);
+        assert_eq!(atom.time_avg(), 10.0);
     }
 
     #[test]
@@ -303,7 +304,7 @@ mod tests {
         let mut atom = setup_atom(0);
         atom.last_time = (current_time() - 1) as u32;
         assert_eq!(atom.comp_avg(&mut over), 1.);
-        assert!(matches!(over, Over::ALL));
+        assert!(matches!(over, Over::All));
     }
 
     #[test]
@@ -314,7 +315,7 @@ mod tests {
         let mut atom = setup_atom(21);
         atom.last_time = (current_time() - time) as u32;
         assert_eq!(atom.comp_avg(&mut over), (time - 21) as f64);
-        assert!(matches!(over, Over::ALL));
+        assert!(matches!(over, Over::All));
     }
 
     #[test]
@@ -325,7 +326,7 @@ mod tests {
         atom.add(61);
         atom.last_time = (current_time() - 15) as u32;
         assert_eq!(atom.comp_avg(&mut over), 12. * 1.25 + 60.);
-        assert!(matches!(over, Over::AVG));
+        assert!(matches!(over, Over::Avg));
     }
 
     #[test]

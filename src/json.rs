@@ -66,23 +66,23 @@ impl EmergeResume {
         //         .expect("The fourth element should be the action"),
         // );
 
-        return EmergeResume {
+        EmergeResume {
             binary,
             // root,
             category,
             name,
             full_name,
             // action,
-        };
+        }
     }
 
     pub fn create(binary: bool, full_name: &str) -> Self {
-        return Self {
+        Self {
             binary,
             category: "".to_string(),
             name: "".to_string(),
             full_name: full_name.to_string(),
-        };
+        }
     }
 }
 

@@ -46,21 +46,21 @@ fn build_package_info(
     end_symbol: char,
 ) -> Option<PackageInfo> {
     let cpn = &line[start_index..found];
-    let space = start_index + &line[start_index..].find(end_symbol)?;
+    let space = start_index + line[start_index..].find(end_symbol)?;
     let slash = cpn.find('/')?;
 
     let category = cpn[0..slash].to_string();
     let name = cpn[slash + 1..cpn.len()].to_string();
     let full_name = line[start_index..space].to_string();
     let num = line[line.find('(')? + 1..line.find(')')?].to_string();
-    return Some(PackageInfo {
+    Some(PackageInfo {
         category,
         name,
         full_name,
         time,
         is_binary,
         num,
-    });
+    })
 }
 
 /// The default function. Used for the starting emerge lines.  
@@ -74,14 +74,14 @@ pub fn get_info(line: &str) -> Option<PackageInfo> {
     let start_index = line.find(')').unwrap_or(line.len()) + 2;
     let found = start_index + get_size_cpn(&line[start_index..])?;
 
-    return build_package_info(line, start_index, found, time, false, ' ');
+    build_package_info(line, start_index, found, time, false, ' ')
 }
 
 /// As the name suggest, used for lines that have 3 equals (merging lines).  
 /// Use [`build_package_info`].
 ///
 /// * `line`: The line you want to extract information from.
-///  Does not perform verification
+///   Does not perform verification
 /// * `position`: Where to start the search for the package. Put 0 if you do not know
 fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
     let mut pos = position;
@@ -105,7 +105,7 @@ fn get_info_3equal(line: &str, position: usize) -> Option<PackageInfo> {
 
     let is_binary = line[index_after_merge..].starts_with("B"); // ...) Merging Binary (xxx/yyy...)
 
-    return build_package_info(line, start_index, found, time, is_binary, ':');
+    build_package_info(line, start_index, found, time, is_binary, ':')
 }
 
 /// Complete an emerge.
@@ -119,11 +119,10 @@ fn complete_emerge(
     emerges_not_complete: &mut HashMap<String, PackageInfo>,
     completed_atoms: &mut HashMap<String, Atom>,
 ) {
-    let p;
-    match get_info(&line) {
-        Some(info) => p = info,
+    let p = match get_info(line) {
+        Some(info) => info,
         None => return,
-    }
+    };
 
     if let Some(m) = emerges_not_complete.get(&p.full_name) {
         // compare the packages with the version
@@ -158,7 +157,8 @@ fn is_line_merging_binary(line: &str) -> bool {
             }
         }
     }
-    return false;
+
+    false
 }
 
 /// Return what is the type of `line` in the log. See [`LineType`].
@@ -172,7 +172,7 @@ fn select_line_type(line: &str) -> LineType {
 
     if interesting.starts_with(">") && interesting.ends_with("e") {
         // Catch all '%d: >>> emerge %s'
-        return LineType::START;
+        return LineType::Start;
     } else if interesting.starts_with("=") && interesting.ends_with("(") {
         // We need to filter the merge messages
         if is_line_merging_binary(line) {
@@ -180,12 +180,12 @@ fn select_line_type(line: &str) -> LineType {
         }
     } else if interesting.starts_with(":") && interesting.ends_with("c") {
         // End of a completed merge
-        return LineType::END;
+        return LineType::End;
     } else if interesting.starts_with("*") && interesting.ends_with("t") {
         // Line of format '%d:  *** terminating.'
-        return LineType::TERM;
+        return LineType::Term;
     }
-    return LineType::UNKNOW;
+    LineType::Unknow
 }
 
 /// Select an action based on the line type
@@ -195,32 +195,27 @@ fn act_on_line(
     completed_atoms: &mut HashMap<String, Atom>,
 ) {
     // skip empty line or those starting with # (for testing purpose)
-    if (line.len() == 0) || line.starts_with("#") {
+    if line.is_empty() || line.starts_with("#") {
         return;
     }
 
     let t = select_line_type(line);
     match t {
-        LineType::START | LineType::MergeBinary => {
+        LineType::Start | LineType::MergeBinary => {
             // Only the function that gets the information changes depending on the type of line
-            match if matches!(t, LineType::START) {
-                get_info(&line)
+            if let Some(info) = if matches!(t, LineType::Start) {
+                get_info(line)
             } else {
-                get_info_3equal(&line, 0)
+                get_info_3equal(line, 0)
             } {
-                Some(info) => {
-                    emerges_not_complete.insert(info.full_name.clone(), info);
-                }
-                None => return,
+                emerges_not_complete.insert(info.full_name.clone(), info);
             }
         }
-        LineType::END => complete_emerge(line, emerges_not_complete, completed_atoms),
-        LineType::TERM => {
+        LineType::End => complete_emerge(line, emerges_not_complete, completed_atoms),
+        LineType::Term => {
             emerges_not_complete.clear();
         }
-        LineType::UNKNOW => {
-            return;
-        }
+        LineType::Unknow => (),
     }
 }
 
@@ -240,7 +235,7 @@ pub fn read_file(
         act_on_line(line, emerges_not_complete, completed_atoms);
     }
 
-    return Ok(());
+    Ok(())
 }
 
 #[cfg(test)]
@@ -251,7 +246,7 @@ pub fn read_file_test(file: &str) -> (HashMap<String, PackageInfo>, HashMap<Stri
     let result = read_file(file, &mut emerges_not_complete, &mut completed_atoms);
     assert!(result.is_ok());
 
-    return (emerges_not_complete, completed_atoms);
+    (emerges_not_complete, completed_atoms)
 }
 
 #[cfg(test)]
@@ -323,7 +318,7 @@ mod tests {
     #[test]
     fn line_is_start() {
         let line = "1234567890:  >>> emerge (1 of 1) sys-devel/gcc-1.2.3 to /";
-        assert!(std::matches!(select_line_type(line), LineType::START));
+        assert!(std::matches!(select_line_type(line), LineType::Start));
     }
 
     #[test]
@@ -335,13 +330,13 @@ mod tests {
     #[test]
     fn line_is_termination() {
         let line = "1234567890:  *** terminating.";
-        assert!(std::matches!(select_line_type(line), LineType::TERM));
+        assert!(std::matches!(select_line_type(line), LineType::Term));
     }
 
     #[test]
     fn line_is_unknow() {
         let line = "1234567890:  >>> AUTOCLEAN: sec-policy/selinux-java:0";
-        assert!(std::matches!(select_line_type(line), LineType::UNKNOW));
+        assert!(std::matches!(select_line_type(line), LineType::Unknow));
     }
 
     #[test]

@@ -43,6 +43,9 @@ fn main() {
 
     println!("format! inline or to_string:");
     to_string_or_inline();
+
+    println!("is_digit():");
+    is_digit_val();
 }
 
 fn string_find(text: &str) {
@@ -103,11 +106,12 @@ fn to_string_or_inline() {
     let time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("Time was warped. Fix it !")
-        .as_nanos();
+        .as_nanos()
+        .to_string();
 
     let to_string = std::time::Instant::now();
     for _ in 0..MIDDLE_COUNT {
-        core::hint::black_box(format!("coucou: {}", time.to_string()));
+        core::hint::black_box(format!("coucou: {}", time));
     }
     println!("\tto_string: {:?}", to_string.elapsed());
 
@@ -116,4 +120,28 @@ fn to_string_or_inline() {
         core::hint::black_box(format!("coucou: {time}"));
     }
     println!("\tinline: {:?}", inline.elapsed());
+}
+
+fn is_digit_val() {
+    let text = "c".to_string();
+    let c = text.as_bytes().first().unwrap();
+
+    let standard = std::time::Instant::now();
+    for _ in 0..HUGE_COUNT {
+        #[allow(clippy::all)]
+        core::hint::black_box((&b'0' <= c) && (c <= &b'9'));
+    }
+    println!("\tstandard: {:?}", standard.elapsed());
+
+    let clippy = std::time::Instant::now();
+    for _ in 0..HUGE_COUNT {
+        core::hint::black_box((&b'0'..=&b'9').contains(&c));
+    }
+    println!("\tclippy: {:?}", clippy.elapsed());
+
+    let deaddress = std::time::Instant::now();
+    for _ in 0..HUGE_COUNT {
+        core::hint::black_box((b'0' <= *c) && (*c <= b'9'));
+    }
+    println!("\tdeaddress: {:?}", deaddress.elapsed());
 }

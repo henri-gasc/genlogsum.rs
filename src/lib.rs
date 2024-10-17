@@ -49,18 +49,17 @@ fn get_time_emerge(t: f64, over: Over) -> String {
 
     match over {
         Over::NO => output.push_str(", ETA:"),
-        Over::AVG => output.push_str(", ETA (avg):"),
-        Over::AVGWORST => output.push_str(", ETA (worst):"),
-        Over::ALL => output.push_str(" is over by"),
+        Over::Avg => output.push_str(", ETA (avg):"),
+        Over::AvgWorst => output.push_str(", ETA (worst):"),
+        Over::All => output.push_str(" is over by"),
     }
 
-    return format!("{output} {}", &time[0..time.len() - 1]);
+    format!("{output} {}", &time[0..time.len() - 1])
 }
 
 fn set_package_time(package: &PackageInfo, completed_atoms: &mut HashMap<String, Atom>) {
-    match completed_atoms.get_mut(&package.cpn()) {
-        Some(atom) => atom.last_time = package.time,
-        None => (),
+    if let Some(atom) = completed_atoms.get_mut(&package.cpn()) {
+        atom.last_time = package.time
     }
 }
 
@@ -101,19 +100,19 @@ fn test_file(log_emerge: &str, time: u32) -> String {
 fn ninja_read(p: &PackageInfo, output: &mut String) {
     let mut log_emerge = String::from("/var/log/portage/build/");
     log_emerge.push_str(&p.full_name);
-    output.push_str(" ");
+    output.push(' ');
 
     // Test 3 files, as there may be slight delay between when the line was written in emerge.log, and when the file was created
     let mut line = test_file(&log_emerge, p.time + 1);
-    if line == "" {
+    if line.is_empty() {
         line = test_file(&log_emerge, p.time);
-        if line == "" {
+        if line.is_empty() {
             line = test_file(&log_emerge, p.time - 1);
         }
     }
 
     // Ninja show progress using '[x/y] cmd'
-    if (line != "") && line.starts_with("[") {
+    if !line.is_empty() && line.starts_with("[") {
         let first_char = line.as_bytes().get(1).unwrap_or(&b'a');
         let second = line.as_bytes().get(2).unwrap_or(&b'a');
 
@@ -133,7 +132,7 @@ fn get_time_package(cpn: &str, completed_atoms: &HashMap<String, Atom>) -> (f64,
         Some(atom) => atom.comp_avg(&mut over),
         None => -1.,
     };
-    return (time, over);
+    (time, over)
 }
 
 /// Return the time the package would need to be installed
@@ -148,7 +147,7 @@ fn get_time(r: &json::EmergeResume, completed_atoms: &HashMap<String, Atom>) -> 
     let size = useful::get_size_cpn(&r.full_name).unwrap_or(r.full_name.len());
     let cpn = &r.full_name.as_str()[..size];
     // ... and compute the time
-    return get_time_package(cpn, completed_atoms);
+    get_time_package(cpn, completed_atoms)
 }
 
 /// Read all the packages from mtimedb and add all their times.
@@ -211,7 +210,7 @@ fn status_package(
     }
 
     let mut output = String::new();
-    if emerge.num != "" {
+    if !emerge.num.is_empty() {
         output.push_str(&format!("{}, ", emerge.num));
     }
     output.push_str(&emerge.full_name);
@@ -229,7 +228,7 @@ fn status_package(
         compile_resumelist(fakeroot, completed_atoms, &mut output);
     }
 
-    return Some((output, t));
+    Some((output, t))
 }
 
 /// Get the formatted output concerning a package
@@ -264,7 +263,7 @@ fn emerge_package(
     out.push_str(&status);
 
     print.push_str(&format!("{out}\n"));
-    return time;
+    time
 }
 
 /// The function you should use the get the emerge time for all packages in `emerges_not_complete` and in mtimedb if config allows you.
@@ -285,7 +284,7 @@ pub fn get_emerges(
         // Create next_emerge from data from mtimedb
         let list = read_mtimedb(fakeroot);
         for p in list {
-            if let Some(_) = emerges_not_complete.get(&p.name) {
+            if emerges_not_complete.get(&p.name).is_some() {
                 continue;
             }
             let package = PackageInfo {
@@ -330,7 +329,7 @@ mod tests {
     }
 
     fn get_default_config() -> Arguments {
-        return Arguments {
+        Arguments {
             files: vec!["./emerge.log".to_string()],
             fakeroots: vec!["/".to_string()],
             format: useful::Format {
@@ -340,12 +339,12 @@ mod tests {
             read_ninja: false,
             show_root: false,
             skip_file: false,
-        };
+        }
     }
 
     fn create_empty_hashmap() -> HashMap<String, Atom> {
         let m: HashMap<String, Atom> = HashMap::new();
-        return m;
+        m
     }
 
     fn create_default_situation() -> (Arguments, HashMap<String, Atom>, PackageInfo) {
@@ -355,7 +354,7 @@ mod tests {
                 .unwrap();
         let mut map = create_empty_hashmap();
         map.insert(emerge.cpn(), Atom::new(emerge.cpn(), 10, 0));
-        return (config, map, emerge);
+        (config, map, emerge)
     }
 
     #[test]

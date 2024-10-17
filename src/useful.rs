@@ -28,25 +28,25 @@ pub enum Over {
     /// The time of the emerge is under the average
     NO,
     /// The time is over the filtered (without worst and best) average, but under the true (with worst and best) average
-    AVG,
+    Avg,
     /// the time is over the true average, but under the worst time
-    AVGWORST,
+    AvgWorst,
     /// The time is over everything, This will be the new worst time when the emerge is done
-    ALL,
+    All,
 }
 
 /// Enum type for what the line in emerge.log is
 pub enum LineType {
     /// If the line if the starting point of an emerge
-    START,
+    Start,
     /// If the line corresponds to the merge of an emerge
     MergeBinary,
     /// If the line is the completed emerge
-    END,
+    End,
     /// If the line signal termination
-    TERM,
+    Term,
     /// If the line is not from the previous 3 types
-    UNKNOW,
+    Unknow,
 }
 
 #[derive(Parser, Default, Debug)]
@@ -133,12 +133,12 @@ pub fn get_path_mtimedb(root: &str) -> String {
     #[cfg(test)]
     path.push_str(root);
 
-    return path;
+    path
 }
 
 /// Test wether or not `c` is a digit
 pub fn is_digit(c: &u8) -> bool {
-    return (&b'0' <= c) && (c <= &b'9');
+    (b'0' <= *c) && (*c <= b'9')
 }
 
 /// Compute the size of category/name from category/name-version
@@ -159,7 +159,7 @@ pub fn get_size_cpn(cpnpv: &str) -> Option<usize> {
         found = is_digit(cpnpv.as_bytes().get(n)?);
     }
 
-    return Some(n - 1);
+    Some(n - 1)
 }
 
 /// Put both `root` and `file` in `path` while removing or adding trailing slash to avoid problem in the functions used after
@@ -167,7 +167,7 @@ pub fn correct_path(root: &str, file: &str, path: &mut String) {
     if !file.starts_with(".") {
         path.push_str(root);
         if !root.ends_with("/") {
-            path.push_str("/");
+            path.push('/');
         }
     }
 
@@ -181,9 +181,9 @@ pub fn correct_path(root: &str, file: &str, path: &mut String) {
 /// Return the sum of `total` and `t` if both are greater than 0
 pub fn add_time(total: f64, t: f64) -> f64 {
     if (t < 0.0) || (total < 0.0) {
-        return -1.0;
+        -1.0
     } else {
-        return total + t;
+        total + t
     }
 }
 
