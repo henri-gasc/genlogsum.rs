@@ -284,7 +284,7 @@ pub fn get_emerges(
         // Create next_emerge from data from mtimedb
         let list = read_mtimedb(fakeroot);
         for p in list {
-            if emerges_not_complete.get(&p.name).is_some() {
+            if emerges_not_complete.get(&p.full_name).is_some() {
                 continue;
             }
             let package = PackageInfo {
