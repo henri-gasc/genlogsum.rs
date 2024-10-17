@@ -64,8 +64,9 @@ pub struct Arguments {
     #[arg(long, default_value = "/", num_args(1..), verbatim_doc_comment)]
     /// Select a folder to act as root.
     ///
-    /// Should be a folder where you can chroot in as we will use the paths [root]/[file] and [root]/var/cache/edb/mtimedb.
-    /// This option is chained with <FILES>, meaning "-f foo.log foo/bar.log --fakeroots /foo / bar" will search for:
+    /// Should be a folder where you can chroot in as we will use the paths fakeroot/file and fakeroot/var/cache/edb/mtimedb.  
+    ///
+    /// This option is chained with \<FILES\>, meaning "-f foo.log foo/bar.log --fakeroots /foo / bar" will search for:  
     ///     /foo/foo.log, /foo/foo/bar.log, /bar/foo.log, /bar/foo/bar.log
     pub fakeroots: Vec<String>,
 
