@@ -96,8 +96,9 @@ fn test_file(log_emerge: &str, time: u32) -> String {
 /// Read the advancement from the file in log/portage/build (that is why you need split-log in your FEATURE variable)
 ///
 /// This function only read the last line (it uses [`test_file`]), so if the compiler show wome warnings, the progression will not appear.
-fn ninja_read(p: &PackageInfo, output: &mut String) {
-    let mut log_emerge = String::from("/var/log/portage/build/");
+fn ninja_read(p: &PackageInfo, root: &str, output: &mut String) {
+    let mut log_emerge = String::new();
+    correct_path(root, "/var/log/portage/build/", &mut log_emerge);
     log_emerge.push_str(&p.full_name);
     output.push(' ');
 
@@ -220,7 +221,7 @@ fn status_package(
     format_time(t, over, &mut output);
 
     if config.read_ninja {
-        ninja_read(emerge, &mut output);
+        ninja_read(emerge, fakeroot, &mut output);
     }
 
     if config.format.full {
